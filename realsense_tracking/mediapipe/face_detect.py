@@ -3,6 +3,11 @@ import mediapipe as mp
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 
+
+#  https://google.github.io/mediapipe/
+# https://google.github.io/mediapipe/solutions/face_detection.html
+
+
 # # For static images:
 # IMAGE_FILES = []
 # with mp_face_detection.FaceDetection(
