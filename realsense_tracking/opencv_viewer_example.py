@@ -5,12 +5,14 @@
 ##      Open CV and Numpy integration        ##
 ###############################################
 
-import time, math
+import json
+import time, math, os.path
 import pyrealsense2 as rs
 import numpy as np
 import cv2
 print("opencv version : " + cv2.__version__ )
 
+file_calib_json = 'calib_pos.json'
 
 import serial
 from serial.tools import list_ports
@@ -44,12 +46,8 @@ if not found_rgb:
 
 # config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 6)
 config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-
-if device_product_line == 'L500':
-    config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
-else:
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-    # config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+# config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
 
 # Start streaming
 pipeline.start(config)
@@ -77,22 +75,49 @@ def my_mouse(event,x,y,flags,param):
             print("click")
             ser.reset_input_buffer()
             ser.write(("raw\n".encode()))
-            mir_pos = ser.readline().decode()
-            if (dist > 0):
-                data_str = "{:.0f},{:.0f},{:.3f}, {}".format(xm,ym,dist, mir_pos)
+            mir_pos = ser.readline().decode().split(',')
+            mir_pos_x = int( mir_pos[0])
+            mir_pos_y = int( mir_pos[1])
+            if (face_point[2] > 0):
+                data_str = "{:.0f},{:.0f},{:.3f}, {}, {}".format(face_point[0], face_point[1], face_point[2], mir_pos_x, mir_pos_y)
                 print( data_str )
                 if (calibration_loop) :
-                    position_file.write(data_str)
+                    calib_results.append([face_point, [mir_pos_x, mir_pos_y]])
 
+def find_closest(point) :
+    min_dist_sqr = 1000000000
+    closest_point = []
+    distances = []
+    for calib_point in calib_results:
+        cur_dist_sqr = 0
+        cur_dist_sqr += (calib_point[0][0] - point[0]) **2
+        cur_dist_sqr += (calib_point[0][1] - point[1]) **2
+        cur_dist_sqr += (100*calib_point[0][2] - 100*point[2]) **2
+        if (min_dist_sqr > cur_dist_sqr) :
+            min_dist_sqr = cur_dist_sqr
+            closest_point = calib_point[1]
+        dist_point = [math.sqrt(cur_dist_sqr), calib_point[1]]
+        distances.append(dist_point)
+    sorted(distances, key=lambda l:l[0])
+    print ("min dist found {} for {}".format(math.sqrt(min_dist_sqr), closest_point))
+    return closest_point
 
-xm = -1
-ym = -1
-dist = -1
+# init globalsss
+face_point = [-1, -1, -1]
 calibration_loop = False
+enable_follow = False
 calib_points = []
 calib_active_index = 0
 calib_step_start_time_s = 0
+if os.path.exists(file_calib_json) :
+    with open(file_calib_json, 'r') as calib_file:
+        calib_results = json.load(calib_file)
+else :
+    calib_results = []
 
+
+# ========================
+# open window and callbacks
 cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
 cv2.setMouseCallback('RealSense',my_mouse)
 
@@ -101,7 +126,7 @@ try:
 
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
-
+        
         depth_frame = frames.get_depth_frame()
         color_frame = frames.get_color_frame()
         if not depth_frame or not color_frame:
@@ -137,10 +162,9 @@ try:
                 ym = math.floor(y + h/2)
                 dist = depth_frame.get_distance(xm, ym)
                 cv2.putText(images, "{:.0f} {:.0f} {:.3f}".format(xm,ym,dist), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                face_point = [xm, ym, dist]
         else :
-            xm = -1
-            ym = -1
-            dist = -1
+            face_point = [-1,-1, -1]
   
 
         # Show images
@@ -182,6 +206,8 @@ try:
 
         elif (key == ord('c')):
             calibration_loop = True
+            enable_follow = False
+            calib_results = []
             calib_active_index = 0
             step = 20
             start = 50
@@ -194,22 +220,25 @@ try:
                     y_range = reversed(range(start, end+1, step))
                 for y in y_range:
                     calib_points.append([x,y])
-            position_file = open("calib_pos.csv", "w")
             serial_move(calib_points[0])
             calib_step_start_time_s = time.perf_counter()
-
 
         elif (key == ord('a') or key == ord('A')):
             ser.reset_input_buffer()
             ser.write(("raw\n".encode()))
             mir_pos = ser.readline().decode()
-            if (dist > 0):
-                data_str = "{:.0f},{:.0f},{:.3f}, {}".format(xm,ym,dist, mir_pos)
+            if (face_point[2] > 0):
+                data_str = "{:.0f},{:.0f},{:.3f}, {}".format(face_point[0], face_point[1], face_point[2], mir_pos)
                 print( data_str )
 
-        if calibration_loop :
+        elif (key == ord('f')) :
+            if not calibration_loop:
+                enable_follow = not enable_follow
+            print("enable folow {}".format(enable_follow))
 
-            if (time.perf_counter() - calib_step_start_time_s > 2 ) :
+        if calibration_loop :
+            # move the mirror until done, then close the calib loop
+            if (time.perf_counter() - calib_step_start_time_s > 10 ) :
                 calib_active_index += 1
                 if (calib_active_index < len(calib_points)):
                     point = calib_points[calib_active_index]
@@ -217,13 +246,18 @@ try:
                     calib_step_start_time_s = time.perf_counter()
                 else :
                     calibration_loop = False
+                    with open(file_calib_json, 'w') as calib_file:
+                        json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
 
-
+        if enable_follow:
+            if (face_point[2] > 0) :
+                set_point = find_closest(face_point)
+                if (len(set_point) > 0 ):
+                    serial_move(set_point)
 
 
 finally:
     print("Stop streaming")
-    position_file.close()
     cv2.destroyAllWindows()
     ser.close()
     # time.sleep(1)
