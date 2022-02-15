@@ -91,7 +91,8 @@ with mp_face_detection.FaceDetection(
                 mp_drawing.draw_detection(image, detection)
             # Flip the image horizontally for a selfie-view display.
         cv2.imshow('MediaPipe Face Detection', cv2.flip(image, 1))
-        if cv2.waitKey(1) & 0xFF == 27:
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
 print("Stop streaming")

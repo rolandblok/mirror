@@ -114,12 +114,10 @@ with mp_face_mesh.FaceMesh(
             # Flip the image horizontally for a selfie-view display.
             # Flip the image horizontally for a selfie-view display.
         cv2.imshow('MediaPipe Face Detection', cv2.flip(image, 1))
-        if cv2.waitKey(1) & 0xFF == 27:
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
 print("Stop streaming")
 cv2.destroyAllWindows()
-time.sleep(1)
-exit(0)
 pipeline.stop()
 quit()

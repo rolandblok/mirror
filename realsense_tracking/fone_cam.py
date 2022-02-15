@@ -26,26 +26,36 @@ class VideoCapture:
           self.q.get_nowait()   # discard previous (unprocessed) frame
         except queue.Empty:
           pass
-      self.q.put(frame)
+      dat = {'ret':ret, 'frame':frame}  
+      self.q.put(dat)
 
   def read(self):
-    return self.q.get()
+    dat = self.q.get()
+    return dat['ret'], dat['frame']
+  def get(self, arg):
+    return self.cap.get(arg)
 
 
 
 class FoneCam:
-    def __init__(self):
+    def __init__(self, record = False):
 
         # ========================
         # open window and callbacks
         cv2.namedWindow('fone_cam', cv2.WINDOW_AUTOSIZE)
-
+        # out = cv2.VideoWriter('video.avi', cv2.VideoWriter_fourcc(*'XVID'), 25, get_dims(cap, res))
 
         phone_cap = VideoCapture("http://192.168.94.22:4747/video")
+        if record:
+          fps = phone_cap.get(cv2.CAP_PROP_FPS)
+          res = (int(phone_cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(phone_cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+          out = cv2.VideoWriter('video.avi', cv2.VideoWriter_fourcc(*'MPEG'), fps, res)
 
         while True:
 
-            phone_frame = phone_cap.read()
+            ret, phone_frame = phone_cap.read()
+            if record:
+              out.write(phone_frame)
 
             cv2.imshow('fone_cam', phone_frame)
 
@@ -59,6 +69,8 @@ class FoneCam:
 
         # wrapup
         print("Stop streaming")
+        if record :
+          out.release()
         cv2.destroyAllWindows()
         # time.sleep(1)
         # exit(0)

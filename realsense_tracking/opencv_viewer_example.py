@@ -138,10 +138,11 @@ def find_closest_mirror_angle(camera_point) :
     print (" V2 closest camera {} gives angle {} ; ".format(closest_point_v2, closest_mirror_v2))
     return closest_mirror_v1
 
+def empty(x):
+    pass
 
 
-
-# init globalsss
+# init globalsss 
 file_calib_json = 'calib_pos.json'
 face_point = [-1, -1, -1]
 calibration_loop = False
@@ -161,7 +162,11 @@ my_aruco = MyAruco()
 # ========================
 # open window and callbacks
 cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-cv2.setMouseCallback('RealSense',my_mouse)
+cv2.setMouseCallback('RealSense', my_mouse)
+# cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
+# cv2.createTrackbar('CannyTh1', 'Parameters', 150, 255, empty)
+# cv2.createTrackbar('CannyTh2', 'Parameters', 255, 255, empty)
+# cv2.createTrackbar('area', 'Parameters',5000, 30000, empty)
 
 # open the feed
 
@@ -213,8 +218,9 @@ while True:
     my_aruco.detect_and_draw(color_image)
     my_aruco.detect_and_draw(phone_frame)
 
-    # detect_hexagon(color_image)
-    # detect_hexagon(phone_frame)
+    # canny_th1 = cv2.getTrackbarPos('CannyTh1', 'Parameters')
+    # canny_th2 = cv2.getTrackbarPos('CannyTh2', 'Parameters')
+    # detect_hexagon(phone_frame, canny_th1, canny_th2)
             
     # If depth and color resolutions are different, resize color image to match depth image for display
     if depth_colormap_dim != color_colormap_dim:
@@ -222,6 +228,8 @@ while True:
         images = np.hstack((resized_color_image, depth_colormap))
     else:
         images = np.hstack((color_image, depth_colormap, phone_frame))
+
+
 
 
     # Show images
@@ -261,7 +269,7 @@ while True:
     elif (key == ord('6')):
         print("{}".format(serial_write_and_read("6")))
 
-    elif (key == ord('c')):
+    elif False: # obsolete old scanning method
         calibration_loop = True
         enable_follow = False
         calib_results = []
@@ -280,6 +288,10 @@ while True:
         serial_move(calib_points[0])
         calib_step_start_time_s = time.perf_counter()
 
+    elif (key == ord('c')):
+        calibration_loop = True
+        enable_follow = False
+
     elif (key == ord('a') or key == ord('A')):
         ser.reset_input_buffer()
         ser.write(("raw\n".encode()))
@@ -294,17 +306,19 @@ while True:
         print("enable folow {}".format(enable_follow))
 
     if calibration_loop :
-        # move the mirror until done, then close the calib loop
-        if (time.perf_counter() - calib_step_start_time_s > 10 ) :
-            calib_active_index += 1
-            if (calib_active_index < len(calib_points)):
-                point = calib_points[calib_active_index]
-                serial_move(calib_points[calib_active_index])
-                calib_step_start_time_s = time.perf_counter()
-            else :
-                calibration_loop = False
-                with open(file_calib_json, 'w') as calib_file:
-                    json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
+        pass
+        # OLD CALIBRATION LOOP
+        # # move the mirror until done, then close the calib loop
+        # if (time.perf_counter() - calib_step_start_time_s > 10 ) :
+        #     calib_active_index += 1
+        #     if (calib_active_index < len(calib_points)):
+        #         point = calib_points[calib_active_index]
+        #         serial_move(calib_points[calib_active_index])
+        #         calib_step_start_time_s = time.perf_counter()
+        #     else :
+        #         calibration_loop = False
+        #         with open(file_calib_json, 'w') as calib_file:
+        #             json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
 
     if enable_follow:
         if (face_point[2] > 0) :
