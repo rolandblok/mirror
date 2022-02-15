@@ -192,7 +192,7 @@ while True:
     depth_colormap_dim = depth_colormap.shape
     color_colormap_dim = color_image.shape
 
-    phone_frame = phone_cap.read()
+    ret, phone_frame = phone_cap.read()
     if phone_frame.shape != color_colormap_dim:
         phone_frame = cv2.resize(phone_frame, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
 
@@ -215,8 +215,22 @@ while True:
         face_point = [-1,-1, -1]
 
 
-    my_aruco.detect_and_draw(color_image)
-    my_aruco.detect_and_draw(phone_frame)
+    realsense_arucos = my_aruco.detect_and_draw(color_image)
+    fone_arucos = my_aruco.detect_and_draw(phone_frame)
+
+    # Mirror center
+    center_sum = [0,0]
+    count = 0
+    for fone_aruco in fone_arucos:
+        id = fone_aruco['id']
+        if id == 0 or id == 1 or id ==2 :
+            center_sum[X] += fone_aruco['pos'][X]
+            center_sum[Y] += fone_aruco['pos'][Y]
+            count += 1
+    if count == 3:
+        center = (int(center_sum[X] / 3), int(center_sum[Y] / 3))
+        cv2.drawMarker(phone_frame, center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+
 
     # canny_th1 = cv2.getTrackbarPos('CannyTh1', 'Parameters')
     # canny_th2 = cv2.getTrackbarPos('CannyTh2', 'Parameters')
@@ -291,6 +305,8 @@ while True:
     elif (key == ord('c')):
         calibration_loop = True
         enable_follow = False
+
+
 
     elif (key == ord('a') or key == ord('A')):
         ser.reset_input_buffer()

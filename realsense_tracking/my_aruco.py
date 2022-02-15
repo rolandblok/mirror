@@ -4,6 +4,8 @@
 import cv2.aruco
 import numpy as np
 
+X = 0   # array indices for cartesian dimensions
+Y = 1
 
 class MyAruco:
     def __init__(self):
@@ -28,8 +30,12 @@ class MyAruco:
                 bottom_left = (int(bottom_left[0]), int(bottom_left[1]))
                 top_left = (int(top_left[0]), int(top_left[1]))
 
-                center = (int(top_left[0] + (top_right[0] - top_left[0])/2), int(top_left[1] + (top_right[1] - top_left[1])/2))
-                center_ids.append([center, id])
+                center_id = {}
+                center_x = int((top_left[X] + top_right[X] + bottom_right[X] + bottom_left[X])/4)
+                center_y = int((top_left[Y] + top_right[Y] + bottom_right[Y] + bottom_left[Y])/4)
+                center_id['pos'] = (center_x, center_y)
+                center_id['id']  = id
+                center_ids.append(center_id)
                 
                     
                 # Draw the bounding box of the ArUco detection
@@ -37,7 +43,7 @@ class MyAruco:
                 cv2.line(detect_image, top_right, bottom_right, (255, 255, 0), 2)
                 cv2.line(detect_image, bottom_right, bottom_left, (255, 255, 0), 2)
                 cv2.line(detect_image, bottom_left, top_left, (255, 255, 0), 2)
-                cv2.putText(detect_image, "{:.0f}".format(id), center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,0,255), thickness=2 )
+                cv2.putText(detect_image, "{:.0f}".format(id), center_id['pos'], cv2.FONT_HERSHEY_SIMPLEX , 1, (255,0,255), thickness=1 )
 
         return center_ids
 
