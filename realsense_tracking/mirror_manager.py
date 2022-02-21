@@ -224,37 +224,36 @@ while True:
   
     # ================
     # Mirror center calibratoin
-    mirror_center_aruco_pos_found = False
+    mirror_fone_aruco_pix_pos_found = False
     mirror_fone_aruco_pos_found = False
     hex_aruco_2_pixel_projection = MyFitProjection()
     for fone_aruco in fone_arucos:
         id = fone_aruco['id']
         if id == 0:
-            fa0 = fone_aruco['pos']
             # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
             hex_aruco_2_pixel_projection.add_measurement((-0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
         if id == 1:
-            fa1 = fone_aruco['pos']
             hex_aruco_2_pixel_projection.add_measurement((0,1), fone_aruco['pos'])
         if id == 2:
             hex_aruco_2_pixel_projection.add_measurement((0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
         if id == 17:
-            mirror_fone_aruco_pos = fone_aruco['pos'] 
-            mirror_fone_aruco_pos_found = True
+            mirror_fone_aruco_pix_pos = fone_aruco['pos'] 
+            mirror_fone_aruco_pix_pos_found = True
             cv2.drawMarker(phone_frame, mirror_fone_aruco_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
     if hex_aruco_2_pixel_projection.solve():
         mirror_center_aruco_pos_found = True
-        middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
+        # debug draw:
+        hex_mirror_middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
         x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((1,0)))
         y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,1)))
-        cv2.line(phone_frame, middle, x_ax, (255,0,255), 1)
-        cv2.line(phone_frame, middle, y_ax, (255,0,255), 1)
+        cv2.line(phone_frame, hex_mirror_middle, x_ax, (255,0,255), 1)
+        cv2.line(phone_frame, hex_mirror_middle, y_ax, (255,0,255), 1)
         
-                
 
-    if calibration_loop and mirror_center_aruco_pos_found and mirror_fone_aruco_pos_found:
-        delta_x = mirror_fone_aruco_pos[X] - mirror_center_aruco_pos[X]
-        delta_y = mirror_fone_aruco_pos[Y] - mirror_center_aruco_pos[Y]
+    if calibration_loop and mirror_fone_aruco_pix_pos_found and mirror_fone_aruco_pos_found:
+        mirror_center_aruco_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_aruco_pix_pos)
+        delta_x = hex_mirror_middle[X] - mirror_center_aruco_pos[X]
+        delta_y = hex_mirror_middle[Y] - mirror_center_aruco_pos[Y]
         calib_mov_av[X].add_point(delta_x)
         calib_mov_av[Y].add_point(delta_y)
         if calib_mov_av[X].get_current() < 5 :
