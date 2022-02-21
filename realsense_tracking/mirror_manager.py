@@ -5,9 +5,9 @@
 ##      Open CV and Numpy integration        ##
 ###############################################
 
+from my_utils import *
 from fone_cam import *
 from my_aruco import *
-from my_utils import *
 
 import json
 import time, math, os.path
@@ -16,15 +16,13 @@ import numpy as np
 import serial
 import cv2
 
+COM_PORT = "COM4"
+CAMERA_IP = "http://192.168.1.80:4747/video"
+# CAMERA_IP = "http://192.168.94.22:4747/video"
+
 
 print("opencv version : " + cv2.__version__ )
 
-# CONSTANTS
-X = 0   # array indices for cartesian dimensions
-Y = 1
-Z = 2
-A = 0   # array indices for mirror angles
-B = 1
 
 
 # =================
@@ -34,8 +32,7 @@ com_ports = list_ports.comports()
 print("com ports")
 for com_port in com_ports:
     print("  " + com_port.description + " " + com_port.device)
-our_port = 'COM8'
-ser = serial.Serial(our_port, 115200, timeout=1)
+ser = serial.Serial(COM_PORT, 115200, timeout=1)
 time.sleep(1)
 print("serial connected : {}".format(ser.readline().decode()))
 
@@ -164,6 +161,9 @@ my_aruco = MyAruco()
 # ========================
 # open window and callbacks
 cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+cv2.moveWindow("RealSense", 20, 20)
+cv2.namedWindow('Fone', cv2.WINDOW_AUTOSIZE)
+cv2.moveWindow("Fone", 20, 660)
 cv2.setMouseCallback('RealSense', my_mouse)
 # cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
 # cv2.createTrackbar('CannyTh1', 'Parameters', 150, 255, empty)
@@ -171,74 +171,86 @@ cv2.setMouseCallback('RealSense', my_mouse)
 # cv2.createTrackbar('area', 'Parameters',5000, 30000, empty)
 
 # open the feed
-phone_cap = VideoCapture("http://192.168.94.22:4747/video")
+phone_cap = VideoCapture(CAMERA_IP)
 
 while True:
 
-    # Wait for a coherent pair of frames: depth and color
-    frames = pipeline.wait_for_frames()
-    
-    depth_frame = frames.get_depth_frame()
-    color_frame = frames.get_color_frame()
-    if not depth_frame or not color_frame:
-        continue
+    # ================
+    # Realsense imaging
+    # frameset = pipeline.wait_for_frames()
+    frameset = pipeline.poll_for_frames()
+    if frameset.size() > 0:
+        depth_frame = frameset.get_depth_frame()
+        color_frame = frameset.get_color_frame()
+        if not depth_frame or not color_frame:
+            continue
 
-    # Convert images to numpy arrays
-    depth_image = np.asanyarray(depth_frame.get_data())
-    color_image = np.asanyarray(color_frame.get_data())
+        # Convert images to numpy arrays
+        depth_image = np.asanyarray(depth_frame.get_data())
+        color_image = np.asanyarray(color_frame.get_data())
+        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
-    # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-    depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+        depth_colormap_dim = depth_colormap.shape
+        color_colormap_dim = color_image.shape
 
-    depth_colormap_dim = depth_colormap.shape
-    color_colormap_dim = color_image.shape
+        gray_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2GRAY )
+        haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
+        faces_rect = haar_cascade.detectMultiScale( gray_image, scaleFactor=1.1, minNeighbors=9)
 
+        if (len(faces_rect) == 1):
+            for (x, y, w, h) in faces_rect:
+                
+                cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
+                xm = math.floor(x + w/2)
+                ym = math.floor(y + h/2)
+                dist = depth_frame.get_distance(xm, ym)
+                cv2.putText(color_image, "{:.0f} {:.0f} {:.3f}".format(xm,ym,dist), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                face_point = [xm, ym, dist]
+        else :
+            face_point = [-1,-1, -1]
+
+        realsense_arucos = my_aruco.detect_and_draw(color_image)
+        rs_image = np.hstack((color_image, depth_colormap))
+
+        cv2.imshow('RealSense', rs_image)
+
+
+
+    # ================
+    # FONE CAM IMAGING
     ret, phone_frame = phone_cap.read()
-    if phone_frame.shape != color_colormap_dim:
-        phone_frame = cv2.resize(phone_frame, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
-
-
-
-    gray_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2GRAY )
-    haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
-    faces_rect = haar_cascade.detectMultiScale( gray_image, scaleFactor=1.1, minNeighbors=9)
-
-    if (len(faces_rect) == 1):
-        for (x, y, w, h) in faces_rect:
-            
-            cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
-            xm = math.floor(x + w/2)
-            ym = math.floor(y + h/2)
-            dist = depth_frame.get_distance(xm, ym)
-            cv2.putText(color_image, "{:.0f} {:.0f} {:.3f}".format(xm,ym,dist), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-            face_point = [xm, ym, dist]
-    else :
-        face_point = [-1,-1, -1]
-
-
-    realsense_arucos = my_aruco.detect_and_draw(color_image)
     fone_arucos = my_aruco.detect_and_draw(phone_frame)
-
+  
     # ================
     # Mirror center calibratoin
     mirror_center_aruco_pos_found = False
-    mirror_center_aruco_pos_count = 0
     mirror_fone_aruco_pos_found = False
-    mirror_center_sum = [0,0]
+    hex_aruco_2_pixel_projection = MyFitProjection()
     for fone_aruco in fone_arucos:
         id = fone_aruco['id']
-        if id == 0 or id == 1 or id ==2 :
-            mirror_center_sum[X] += fone_aruco['pos'][X]/3
-            mirror_center_sum[Y] += fone_aruco['pos'][Y]/3
-            mirror_center_aruco_pos_count += 1
+        if id == 0:
+            fa0 = fone_aruco['pos']
+            # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
+            hex_aruco_2_pixel_projection.add_measurement((-0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
+        if id == 1:
+            fa1 = fone_aruco['pos']
+            hex_aruco_2_pixel_projection.add_measurement((0,1), fone_aruco['pos'])
+        if id == 2:
+            hex_aruco_2_pixel_projection.add_measurement((0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
         if id == 17:
             mirror_fone_aruco_pos = fone_aruco['pos'] 
             mirror_fone_aruco_pos_found = True
             cv2.drawMarker(phone_frame, mirror_fone_aruco_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
-    if mirror_center_aruco_pos_count == 3:
+    if hex_aruco_2_pixel_projection.solve():
         mirror_center_aruco_pos_found = True
-        mirror_center_aruco_pos = (int(mirror_center_sum[X]), int(mirror_center_sum[Y]))
-        cv2.drawMarker(phone_frame, mirror_center_aruco_pos, (255, 55, 55), cv2.MARKER_CROSS, 10, 1)
+        middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
+        x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((1,0)))
+        y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,1)))
+        cv2.line(phone_frame, middle, x_ax, (255,0,255), 1)
+        cv2.line(phone_frame, middle, y_ax, (255,0,255), 1)
+        
+                
 
     if calibration_loop and mirror_center_aruco_pos_found and mirror_fone_aruco_pos_found:
         delta_x = mirror_fone_aruco_pos[X] - mirror_center_aruco_pos[X]
@@ -255,23 +267,12 @@ while True:
             print("{}".format(serial_write_and_read("l")))
 
 
-    # canny_th1 = cv2.getTrackbarPos('CannyTh1', 'Parameters')
-    # canny_th2 = cv2.getTrackbarPos('CannyTh2', 'Parameters')
-    # detect_hexagon(phone_frame, canny_th1, canny_th2)
-            
-    # If depth and color resolutions are different, resize color image to match depth image for display
-    if depth_colormap_dim != color_colormap_dim:
-        resized_color_image = cv2.resize(color_image, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
-        images = np.hstack((resized_color_image, depth_colormap))
-    else:
-        images = np.hstack((color_image, depth_colormap, phone_frame))
-
-
-
-
     # Show images
 
-    cv2.imshow('RealSense', images)
+    cv2.imshow('Fone', phone_frame)
+
+    # ==================
+    #  interaction
 
     key = cv2.waitKey(1)
     if(key == ord('q') or key == ord('Q')):

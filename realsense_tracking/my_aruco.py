@@ -1,11 +1,10 @@
 
 # https://chev.me/arucogen/
 
+from my_utils import *
+
 import cv2.aruco
 import numpy as np
-
-X = 0   # array indices for cartesian dimensions
-Y = 1
 
 class MyAruco:
     def __init__(self):
