@@ -34,7 +34,8 @@ class VideoCapture:
     return dat['ret'], dat['frame']
   def get(self, arg):
     return self.cap.get(arg)
-
+  def isOpened(self):
+    return self.cap.isOpened()
 
 
 class FoneCam:
@@ -77,3 +78,8 @@ class FoneCam:
         quit()
 
 
+# ===========================
+#  TESTING
+# ===========================
+if __name__ == '__main__':
+  phone_cap = FoneCam(True)

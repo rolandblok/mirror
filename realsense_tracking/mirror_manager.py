@@ -16,9 +16,13 @@ import numpy as np
 import serial
 import cv2
 
-COM_PORT = "COM4"
-CAMERA_IP = "http://192.168.1.80:4747/video"
-# CAMERA_IP = "http://192.168.94.22:4747/video"
+WERKPLAATS = True
+if WERKPLAATS:
+    COM_PORT = "COM8"
+    CAMERA_IP = "http://192.168.94.22:4747/video"
+else: 
+    COM_PORT = "COM4"
+    CAMERA_IP = "http://192.168.1.80:4747/video"
 
 
 print("opencv version : " + cv2.__version__ )
@@ -137,8 +141,6 @@ def find_closest_mirror_angle(camera_point) :
     print (" V2 closest camera {} gives angle {} ; ".format(closest_point_v2, closest_mirror_v2))
     return closest_mirror_v1
 
-def empty(x):
-    pass
 
 
 # init globalsss 
@@ -150,6 +152,7 @@ enable_follow = False
 calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib points]
 calib_active_index = 0
 calib_step_start_time_s = 0
+calib_last_adjust_time_ns = time.perf_counter_ns()
 if os.path.exists(file_calib_json) :
     with open(file_calib_json, 'r') as calib_file:
         calib_results = json.load(calib_file)
@@ -165,15 +168,19 @@ cv2.moveWindow("RealSense", 20, 20)
 cv2.namedWindow('Fone', cv2.WINDOW_AUTOSIZE)
 cv2.moveWindow("Fone", 20, 660)
 cv2.setMouseCallback('RealSense', my_mouse)
-# cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
-# cv2.createTrackbar('CannyTh1', 'Parameters', 150, 255, empty)
-# cv2.createTrackbar('CannyTh2', 'Parameters', 255, 255, empty)
-# cv2.createTrackbar('area', 'Parameters',5000, 30000, empty)
+cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
+cv2.resizeWindow('Parameters', 1000, 200)
+cv2.createTrackbar('delay_ms', 'Parameters', 500, 1000, empty_fun)
+# cv2.createTrackbar('CannyTh1', 'Parameters', 150, 255, empty_fun)
+# cv2.createTrackbar('CannyTh2', 'Parameters', 255, 255, empty_fun)
+# cv2.createTrackbar('area', 'Parameters',5000, 30000, empty_fun)
 
-# open the feed
+# open the fone camera feed
 phone_cap = VideoCapture(CAMERA_IP)
+if not phone_cap.isOpened():
+    print("no fone camera, quiting ")
 
-while True:
+while phone_cap.isOpened():
 
     # ================
     # Realsense imaging
@@ -210,7 +217,12 @@ while True:
         else :
             face_point = [-1,-1, -1]
 
-        realsense_arucos = my_aruco.detect_and_draw(color_image)
+        rs_arucos = my_aruco.detect_and_draw(color_image)
+        for rs_aruco in rs_arucos:
+            id = rs_aruco['id']
+            if id == 17:
+                pix_pos_a17 = tuple2int( rs_aruco['pos'] )
+                depth_a17 = depth_frame.get_distance( pix_pos_a17 )
         rs_image = np.hstack((color_image, depth_colormap))
 
         cv2.imshow('RealSense', rs_image)
@@ -225,8 +237,8 @@ while True:
     # ================
     # Mirror center calibratoin
     mirror_fone_aruco_pix_pos_found = False
-    mirror_fone_aruco_pos_found = False
     hex_aruco_2_pixel_projection = MyFitProjection()
+    # find and orden all arucos
     for fone_aruco in fone_arucos:
         id = fone_aruco['id']
         if id == 0:
@@ -239,31 +251,43 @@ while True:
         if id == 17:
             mirror_fone_aruco_pix_pos = fone_aruco['pos'] 
             mirror_fone_aruco_pix_pos_found = True
-            cv2.drawMarker(phone_frame, mirror_fone_aruco_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+            cv2.drawMarker(phone_frame, mirror_fone_aruco_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+    # fit the model for mirror arucos
     if hex_aruco_2_pixel_projection.solve():
-        mirror_center_aruco_pos_found = True
         # debug draw:
         hex_mirror_middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
         x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((1,0)))
         y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,1)))
         cv2.line(phone_frame, hex_mirror_middle, x_ax, (255,0,255), 1)
         cv2.line(phone_frame, hex_mirror_middle, y_ax, (255,0,255), 1)
-        
 
-    if calibration_loop and mirror_fone_aruco_pix_pos_found and mirror_fone_aruco_pos_found:
-        mirror_center_aruco_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_aruco_pix_pos)
-        delta_x = hex_mirror_middle[X] - mirror_center_aruco_pos[X]
-        delta_y = hex_mirror_middle[Y] - mirror_center_aruco_pos[Y]
-        calib_mov_av[X].add_point(delta_x)
-        calib_mov_av[Y].add_point(delta_y)
-        if calib_mov_av[X].get_current() < 5 :
-            print("{}".format(serial_write_and_read("i")))
-        elif calib_mov_av[X].get_current() > 5 : 
-            print("{}".format(serial_write_and_read("p")))
-        if calib_mov_av[Y].get_current() < 5 :
-            print("{}".format(serial_write_and_read("o")))
-        elif calib_mov_av[Y].get_current() > 5 : 
-            print("{}".format(serial_write_and_read("l")))
+
+        # adjust mirror pos for calibration loop
+        if calibration_loop and mirror_fone_aruco_pix_pos_found :
+            delay_ms = cv2.getTrackbarPos('delay_ms', 'Parameters')
+
+            mirror_center_aruco_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_aruco_pix_pos)
+            cv2.putText(color_image, "{:.3f}:{:.3f} ".format(mirror_center_aruco_pos[X],mirror_center_aruco_pos[Y]), 
+                (mirror_fone_aruco_pix_pos[X],mirror_fone_aruco_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+
+            if (time.perf_counter_ns() - calib_last_adjust_time_ns) > delay_ms*1000000:
+                calib_last_adjust_time_ns = time.perf_counter_ns()
+                print("{:.3f}:{:.3f} ".format(mirror_center_aruco_pos[X],mirror_center_aruco_pos[Y]))
+                
+                delta_x = mirror_center_aruco_pos[X]
+                delta_y = mirror_center_aruco_pos[Y]
+
+                print("{}".format(delta_x))
+                calib_mov_av[X].add_point(delta_x)
+                calib_mov_av[Y].add_point(delta_y)
+                if calib_mov_av[X].get_current() < 0.1 :
+                    print("{}".format(serial_write_and_read("o")))
+                elif calib_mov_av[X].get_current() > 0.1 : 
+                    print("{}".format(serial_write_and_read("l")))
+                if calib_mov_av[Y].get_current() < 0.1 :
+                    print("{}".format(serial_write_and_read("i")))
+                elif calib_mov_av[Y].get_current() > 0.1 : 
+                    print("{}".format(serial_write_and_read("p")))
 
 
     # Show images
@@ -327,6 +351,7 @@ while True:
 
     elif (key == ord('c')):
         calibration_loop = not calibration_loop
+        print(" calibration loop : {}".format(calibration_loop))
         enable_follow = False
 
     elif (key == ord('a') or key == ord('A')):

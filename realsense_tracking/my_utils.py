@@ -10,6 +10,10 @@ Z = 2
 A = 0   # array indices for mirror angles
 B = 1
 
+
+def empty_fun(x):
+    pass
+
 def tuple2int(t) :
     return tuple(map(int, t))
 
@@ -50,6 +54,7 @@ class MyFitProjection() :
     def __init__(self):
         self.y = []
         self.A = []
+        self.solved = False
         pass
     def add_measurement(self, x, y):
         self.y.append(y[X])
@@ -58,16 +63,19 @@ class MyFitProjection() :
         self.A.append([0, 1, 0,    0,    x[X], x[Y]])
 
     def solve(self):
-        if len(self.y) > 3:
+        if len(self.y) > 4:
             self.p = np.linalg.lstsq(self.A, self.y, rcond=None)[0]
             self.C = (self.p[0], self.p[1])
             self.M = [[self.p[2], self.p[3]], [self.p[4], self.p[5]]]
             self.Minv = np.linalg.inv(self.M)
+            self.solved = True
             return True
         else:
             return False
+    def is_solved(self):
+        return self.solved
 
-    def evalX2Y(self, x, int_cast = False):
+    def evalX2Y(self, x):
         a = self.C[X] + self.p[2]*x[X] + self.p[3]*x[Y]
         b = self.C[Y] + self.p[4]*x[X] + self.p[5]*x[Y]
         return (a, b)
