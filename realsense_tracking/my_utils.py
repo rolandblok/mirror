@@ -2,6 +2,7 @@ import statistics
 import numpy as np
 import math
 import unittest
+import time
 
 # CONSTANTS
 X = 0   # array indices for cartesian dimensions
@@ -31,6 +32,17 @@ class MyMovingAverage:
     def get_current(self):
         return statistics.mean(self.data)
 
+class MyFPS(MyMovingAverage):
+    def __init__(self, depth):
+        super().__init__(depth)
+        self.last_time_s =  time.perf_counter()
+        self.add_frame()
+    def add_frame(self):
+        d_time_s = time.perf_counter() - self.last_time_s
+        self.add_point(d_time_s)
+        self.last_time_s = time.perf_counter()
+    def get_fps(self):
+        return(1/self.get_current())
 
 
 # fit y = C + M x
@@ -86,10 +98,6 @@ class MyFitProjection() :
         xy = self.Minv[1][0] * ymc[X] + self.Minv[1][1] * ymc[Y]
         return (xx, xy)
     
-
-
-
-
 
 
 # ===========================

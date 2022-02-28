@@ -21,8 +21,6 @@ bool sinus_motion = false;
 
 void(*resetFunc) (void) = 0; 
 
-
-
 void loop_serial() {
   // ===============
   // serial business
@@ -43,6 +41,18 @@ void loop_serial() {
       if ((angle_read >= 0) || (angle_read <= 180)) {
         myservos_angles[1] = angle_read;
       }
+      serial_print_angles();
+    } else if (command.startsWith("A")) {
+      long angle_read = command.substring(2).toInt();
+      myservos_angles[0] += angle_read;
+      serial_print_angles();
+    } else if (command.startsWith("B")) {
+      long angle_read = command.substring(2).toInt();
+      myservos_angles[1] += angle_read;
+      serial_print_angles();
+    } else if (command.startsWith("C")) {
+      myservos_angles[0] += command.substring(2).toInt();
+      myservos_angles[1] += command.substring(1+command.indexOf(',')).toInt();
       serial_print_angles();
     } else if (command.equals("1")) {
         myservos_angles[0] = 50;
@@ -94,6 +104,9 @@ void loop_serial() {
         Serial.println("commands: ");
         Serial.println("  a 10   : set the servo 1 to 10 degrees");
         Serial.println("  b 10   : set the servo 2 to 10 degrees");
+        Serial.println("  A 10   : add the servo 1 with 10 degrees");
+        Serial.println("  B -10  : add the servo 1 with -10 degrees");
+        Serial.println("  C 10,-10  : add the servo 1 with 10,-10 degrees");
         Serial.println("  i - p  : left - right 1 step");
         Serial.println("  o - l  : up   - down 1 step");
         Serial.println("  I - P  : left - right 5 steps");
@@ -112,7 +125,9 @@ void serial_print_angles_raw() {
   Serial.println("" + String(myservos_angles[0]) + " , " + String(myservos_angles[1]) );
 }
 
-
+/** ===============================
+ * Startup routine
+ */
 void setup() {
   Serial.begin(115200);
   Serial.println("Boot Started");
@@ -126,7 +141,10 @@ void setup() {
 
 }
 
-void loop() {
+/** ===============================
+ * Loop Routine
+ */
+ void loop() {
   static int dir  = 1;
   static int pos = 0;
 
@@ -147,7 +165,6 @@ void loop() {
     myservos[s].write(myservos_angles[s]);              // tell servo to go to position in variable 'pos'
   }
   delay(0);                       // waits 15ms for the servo to reach the position
-
   
 }
 

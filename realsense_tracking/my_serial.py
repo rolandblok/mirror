@@ -1,6 +1,7 @@
 from numpy import true_divide
 import serial
 import time
+from my_utils import *
 
 
 class MyMirrorSerial:
@@ -16,7 +17,7 @@ class MyMirrorSerial:
             self.ser = serial.Serial(port, 115200, timeout=1)
             time.sleep(1)
             print("serial connected : {}".format(self.ser.readline().decode()))
-            self.serial_open = True
+            self.serial_connected = True
 
     def serial_write_and_read(self, ser_com):
         if (self.serial_connected):
@@ -33,6 +34,7 @@ class MyMirrorSerial:
             self.ser.reset_input_buffer()
             self.ser.write(("raw\n".encode()))
             mir_pos = self.ser.readline().decode().split(',')
+            mir_pos = [int(mp) for mp in mir_pos]
         return mir_pos
 
     def serial_move(self, point):
@@ -42,6 +44,16 @@ class MyMirrorSerial:
             time.sleep(0.2)
         else:
             print("serial not connected")
+
+    def serial_delta_move(self, delta_x, delta_y):
+        if (self.serial_connected):
+            delta_x = round(delta_x)
+            delta_y = round(delta_y)
+            print("{}".format(self.serial_write_and_read("C {}, {}".format(delta_x, delta_y))))
+            time.sleep(0.2)
+        else:
+            print("serial not connected")
+
 
     def close(self):
         self.ser.close()

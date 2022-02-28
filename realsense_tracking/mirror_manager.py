@@ -1,8 +1,6 @@
-## License: Apache 2.0. See LICENSE file in root directory.
-## Copyright(c) 2015-2017 Intel Corporation. All Rights Reserved.
 
 ###############################################
-##      Open CV and Numpy integration        ##
+##      MiRROR MaNaAgeR       ##
 ###############################################
 
 from my_utils import *
@@ -10,11 +8,13 @@ from fone_cam import *
 from my_aruco import *
 from my_pointcloud import *
 from my_serial import *
+from my_mirror_calib import *
 
 import json
 import time, math, os.path
 import pyrealsense2 as rs
 import numpy as np
+import dlib
 import cv2
 print("opencv version : " + cv2.__version__ )
 
@@ -28,32 +28,50 @@ else:
 
 ENABLE_FONE = False
 ENABLE_RS_FEED = True
-ENABLE_RS_POINTCLOUD = True
-ENABLE_FACE_DETECTION = True
+ENABLE_RS_POINTCLOUD = False
+ENABLE_FACE_DETECTION_HAAR = True
+ENABLE_FACE_DETECTION_DLIB = False
+ENABLE_ARUCO_DETECTION = False
 ENABLE_SERIAL = True
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
 
+MIRROR_ARUCO_RADIUS = 0.15 # meters
+
 # init globalsss 
 file_calib_json = 'calib_pos.json'
 face_point = [-1, -1, -1]
 calibration_loop = False
-calib_mov_av = [MyMovingAverage(1), MyMovingAverage(1)]
 enable_follow = False
 calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib points]
 calib_active_index = 0
 calib_step_start_time_s = 0
 calib_last_adjust_time_ns = time.perf_counter_ns()
+my_mirror_calib = MyMirrorCalib()
 if os.path.exists(file_calib_json) :
     with open(file_calib_json, 'r') as calib_file:
         calib_results = json.load(calib_file)
+        for calib_point in calib_results:
+            angles = []
+            angles.append( (calib_point[1][0] - 90) * math.pi / 180)
+            angles.append( (calib_point[1][1] - 90) * math.pi / 180)
+            my_mirror_calib.add_data(calib_point[0], angles )
+        res = my_mirror_calib.solve()
+        if (res):
+            print("  {}".format(my_mirror_calib._P))
+        else : 
+            print('fit failed')
 else :
     calib_results = []
+    MyMirrorCalib = 0
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
 
 my_aruco = MyAruco()
+
+my_fps_rs = MyFPS(30)
+my_fps_phone = MyFPS(30)
 
 # =================
 # SERIAL ENABLING
@@ -114,8 +132,6 @@ def my_mouse(event,x,y,flags,param):
         if (face_point[2] > 0):
             data_str = "{:.0f},{:.0f},{:.3f}, {}, {}".format(face_point[0], face_point[1], face_point[2], mir_pos_x, mir_pos_y)
             print( data_str )
-            if (calibration_loop) :
-                calib_results.append([face_point, [mir_pos_x, mir_pos_y]])
     if event == cv2.EVENT_LBUTTONUP:
         mouse_btns[0] = False
     if event == cv2.EVENT_RBUTTONDOWN:
@@ -137,47 +153,6 @@ def my_mouse(event,x,y,flags,param):
         elif mouse_btns[2]:
             my_pointcloud.mouse_move_three(dx,dy)
         
-def find_closest_mirror_angle(camera_point) :
-    min_dist_sqr = 1000000000
-    closest_point_v1 = []
-    closest_mirror_v1 = []
-    distances = []     # [[distance, [:camera-xyz][:mirror-angles]] :for all calib points]
-    for calib_point in calib_results:
-        cur_dist_sqr = 0
-        cur_dist_sqr += (calib_point[0][0] - camera_point[0]) **2
-        cur_dist_sqr += (calib_point[0][1] - camera_point[1]) **2
-        cur_dist_sqr += (100*calib_point[0][2] - 100*camera_point[2]) **2
-        if (min_dist_sqr > cur_dist_sqr) :
-            min_dist_sqr = cur_dist_sqr
-            closest_point_v1 = calib_point[0]
-            closest_mirror_v1 = calib_point[1]
-        dist_point = [math.sqrt(cur_dist_sqr), calib_point[0], calib_point[1]]
-        distances.append(dist_point)
-    sorted(distances, key=lambda l:l[0])
-    print (" D0 {}  ".format( distances[0]))
-    print (" D1 {}  ".format( distances[1]))
-    print (" D1 {}  ".format( distances[2]))
-    d0d1 = distances[0][0] * distances[1][0]
-    d1d2 = distances[1][0] * distances[2][0]
-    d0d2 = distances[0][0] * distances[2][0]
-    ddsum = d0d1 + d1d2 + d0d2
-    w0 = d1d2 / ddsum
-    w1 = d0d2 / ddsum
-    w2 = d0d1 / ddsum
-    closest_point_v2 = [0,0,0]
-    closest_point_v2[X] = w0 * distances[0][1][X] +  w1 * distances[1][1][X] +  w2 * distances[2][1][X]
-    closest_point_v2[Y] = w0 * distances[0][1][Y] +  w1 * distances[1][1][Y] +  w2 * distances[2][1][Y]
-    closest_point_v2[Z] = w0 * distances[0][1][Z] +  w1 * distances[1][1][Z] +  w2 * distances[2][1][Z]
-    closest_mirror_v2 = [0,0]
-    closest_mirror_v2[A] = w0 * distances[0][2][A] +  w1 * distances[1][2][0] +  w2 * distances[2][2][0]
-    closest_mirror_v2[B] = w0 * distances[0][2][B] +  w1 * distances[1][2][1] +  w2 * distances[2][2][1]
-
-    print (" Vx camera {} ".format( camera_point ))
-    print (" V1 closest camera {} gives angle {} ; min-dist {}".format( closest_point_v1, closest_mirror_v1, math.sqrt(min_dist_sqr)))
-    print (" V2 closest camera {} gives angle {} ; ".format(closest_point_v2, closest_mirror_v2))
-    return closest_mirror_v1
-
-
 # ========================
 # open window and callbacks
 cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
@@ -187,7 +162,7 @@ cv2.moveWindow("Fone", 20, 660)
 cv2.setMouseCallback('RealSense', my_mouse)
 cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
 cv2.resizeWindow('Parameters', 1000, 200)
-cv2.createTrackbar('delay_ms', 'Parameters', 500, 1000, empty_fun)
+cv2.createTrackbar('delay_ms', 'Parameters', 200, 1000, empty_fun)
 
 if ENABLE_RS_POINTCLOUD and ENABLE_RS_FEED:
     my_pointcloud = MyPointCloud()
@@ -200,11 +175,15 @@ if (ENABLE_FONE):
         print("no fone camerag ")
         ENABLE_FONE = False
 
+detector = dlib.get_frontal_face_detector()                
+haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
+
 
 while ENABLE_FONE or ENABLE_RS_FEED:
 
     # ================
     # Realsense imaging
+    depth_a17_found = False
     if (ENABLE_RS_FEED):
         frameset = pipeline.poll_for_frames()
         if frameset.size() > 0:
@@ -212,6 +191,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             color_frame = frameset.get_color_frame()
             if not depth_frame or not color_frame:
                 continue
+            my_fps_rs.add_frame()
 
             # Convert images to numpy arrays
             depth_image = np.asanyarray(depth_frame.get_data())
@@ -222,33 +202,52 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            if ENABLE_FACE_DETECTION:
+            faces_rect = []
+            if ENABLE_FACE_DETECTION_HAAR:
                 gray_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2GRAY )
-                haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
                 faces_rect = haar_cascade.detectMultiScale( gray_image, scaleFactor=1.1, minNeighbors=9)
+            if ENABLE_FACE_DETECTION_DLIB:
+                rgb_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2RGB )
+                dets = detector(rgb_image, 1)
+                for i, d in enumerate(dets):
+                    face_rect = [0]*4
+                    face_rect[0] = d.left()
+                    face_rect[1] = d.top()
+                    face_rect[2] = d.right() - d.left()
+                    face_rect[3] = d.bottom() - d.top()
+                    faces_rect.append(face_rect)
+                    print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(
+                            i, d.left(), d.top(), d.right(), d.bottom()))
 
-                if (len(faces_rect) == 1):
-                    for (x, y, w, h) in faces_rect:
-                        
-                        cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
-                        xm = math.floor(x + w/2)
-                        ym = math.floor(y + h/2)
 
-                        # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
-                        dist = depth_frame.get_distance(xm, ym) 
-                        face_point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [xm, ym], dist)
-                        cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_point[X],face_point[Y],face_point[Z]), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-                else :
-                    face_point = [0,0, 0]
+            if (len(faces_rect) == 1):
+                for (x, y, w, h) in faces_rect:
+                    
+                    cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
+                    xm = math.floor(x + w/2)
+                    ym = math.floor(y + h/2)
 
-            rs_arucos = my_aruco.detect_and_draw(color_image)
-            for rs_aruco in rs_arucos:
-                id = rs_aruco['id']
-                if id == 17:
-                    pix_pos_a17 = tuple2int( rs_aruco['pos'] )
-                    dist = depth_frame.get_distance(pix_pos_a17[X], pix_pos_a17[Y]) 
-                    depth_a17 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, pix_pos_a17, dist)
-                    cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                    # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
+                    dist = depth_frame.get_distance(xm, ym) 
+                    face_point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [xm, ym], dist)
+                    cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_point[X],face_point[Y],face_point[Z]), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+            else :
+                face_point = [0,0, 0]
+
+
+
+            if (ENABLE_ARUCO_DETECTION):
+                rs_arucos = my_aruco.detect_and_draw(color_image)
+                for rs_aruco in rs_arucos:
+                    id = rs_aruco['id']
+                    if id == 17:
+                        pix_pos_a17 = tuple2int( rs_aruco['pos'] )
+                        dist = depth_frame.get_distance(pix_pos_a17[X], pix_pos_a17[Y]) 
+                        depth_a17_found = True
+                        depth_a17 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, pix_pos_a17, dist)
+                        cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+
+            cv2.putText(color_image, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
             if (ENABLE_RS_POINTCLOUD):
                 point_image = my_pointcloud.handle_new_frame(depth_frame, color_frame, color_image)
@@ -263,67 +262,68 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     # FONE CAM IMAGING
     if (ENABLE_FONE):
         ret, phone_frame = phone_cap.read()
+        my_fps_phone.add_frame()
+
         fone_arucos = my_aruco.detect_and_draw(phone_frame)
     
         # ================
         # Mirror center calibratoin
-        mirror_fone_aruco_pix_pos_found = False
+        mirror_fone_a17_pix_pos_found = False
         hex_aruco_2_pixel_projection = MyFitProjection()
         # find and orden all arucos
         for fone_aruco in fone_arucos:
             id = fone_aruco['id']
             if id == 0:
                 # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-                hex_aruco_2_pixel_projection.add_measurement((-0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
+                hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
             if id == 1:
-                hex_aruco_2_pixel_projection.add_measurement((0,1), fone_aruco['pos'])
+                hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
             if id == 2:
-                hex_aruco_2_pixel_projection.add_measurement((0.5*math.sqrt(3),-0.5), fone_aruco['pos'])
+                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
             if id == 17:
-                mirror_fone_aruco_pix_pos = fone_aruco['pos'] 
-                mirror_fone_aruco_pix_pos_found = True
-                cv2.drawMarker(phone_frame, mirror_fone_aruco_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+                mirror_fone_a17_pix_pos = fone_aruco['pos'] 
+                mirror_fone_a17_pix_pos_found = True
+                cv2.drawMarker(phone_frame, mirror_fone_a17_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+
         # fit the model for mirror arucos
         if hex_aruco_2_pixel_projection.solve():
-            # debug draw:
+            # debug draw an axis over the mirror, of 10 centumeters:
             hex_mirror_middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
-            x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((1,0)))
-            y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,1)))
-            cv2.line(phone_frame, hex_mirror_middle, x_ax, (255,0,255), 1)
-            cv2.line(phone_frame, hex_mirror_middle, y_ax, (255,0,255), 1)
+            x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0.10, 0   )))
+            y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,    0.10)))
+            cv2.line(phone_frame, hex_mirror_middle, x_ax, (255,0,255), 2)
+            cv2.line(phone_frame, hex_mirror_middle, y_ax, (255,0,255), 2)
 
 
-            # adjust mirror pos for calibration loop
-            if calibration_loop and mirror_fone_aruco_pix_pos_found :
+        # adjust mirror pos for calibration loop
+        if hex_aruco_2_pixel_projection.solved and mirror_fone_a17_pix_pos_found:
+            mirror_center_a17_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_a17_pix_pos)
+            cv2.putText(phone_frame, "{:.3f}:{:.3f} ".format(mirror_center_a17_pos[X], mirror_center_a17_pos[Y]), 
+                (mirror_fone_a17_pix_pos[X],mirror_fone_a17_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+
+
+            if calibration_loop and depth_a17_found:
+
                 delay_ms = cv2.getTrackbarPos('delay_ms', 'Parameters')
-
-                mirror_center_aruco_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_aruco_pix_pos)
-                cv2.putText(color_image, "{:.3f}:{:.3f} ".format(mirror_center_aruco_pos[X],mirror_center_aruco_pos[Y]), 
-                    (mirror_fone_aruco_pix_pos[X],mirror_fone_aruco_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-
                 if (time.perf_counter_ns() - calib_last_adjust_time_ns) > delay_ms*1000000:
                     calib_last_adjust_time_ns = time.perf_counter_ns()
-                    print("{:.3f}:{:.3f} ".format(mirror_center_aruco_pos[X],mirror_center_aruco_pos[Y]))
                     
-                    delta_x = mirror_center_aruco_pos[X]
-                    delta_y = mirror_center_aruco_pos[Y]
+                    d_angle_x = math.atan(mirror_center_a17_pos[X] / depth_a17[Z]) * 360/math.pi 
+                    d_angle_y = math.atan(mirror_center_a17_pos[Y] / depth_a17[Z]) * 360/math.pi 
 
-                    print("{}".format(delta_x))
-                    calib_mov_av[X].add_point(delta_x)
-                    calib_mov_av[Y].add_point(delta_y)
-                    if calib_mov_av[X].get_current() < 0.1 :
-                        print("{}".format(my_serial.serial_write_and_read("o")))
-                    elif calib_mov_av[X].get_current() > 0.1 : 
-                        print("{}".format(my_serial.serial_write_and_read("l")))
-                    if calib_mov_av[Y].get_current() < 0.1 :
-                        print("{}".format(my_serial.serial_write_and_read("i")))
-                    elif calib_mov_av[Y].get_current() > 0.1 : 
-                        print("{}".format(my_serial.serial_write_and_read("p")))
+                    if round(d_angle_x) == 0 and round(d_angle_y) == 0 :
+                        angle_pos = my_serial.read_pos()
+                        calib_results.append([depth_a17, angle_pos])
+                    else:
+                        my_serial.serial_delta_move(-d_angle_x, -d_angle_y)
+
 
 
     # Show images
 
     if ENABLE_FONE:
+        cv2.putText(phone_frame, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+
         cv2.imshow('Fone', phone_frame)
 
     # ==================
@@ -362,27 +362,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     elif (key == ord('6')):
         print("{}".format(my_serial.serial_write_and_read("6")))
 
-    elif False: # obsolete old scanning method
-        calibration_loop = True
-        enable_follow = False
-        calib_results = []
-        calib_active_index = 0
-        step = 20
-        start = 50
-        end = 130
-        start_modx = start % (step*2)
-        for x in range(start, end+1, step):
-            if x % (step*2) == start_modx :
-                y_range = range(start, end+1, step)
-            else :
-                y_range = reversed(range(start, end+1, step))
-            for y in y_range:
-                calib_points.append([x,y])
-        serial_move(calib_points[0])
-        calib_step_start_time_s = time.perf_counter()
-
     elif (key == ord('c')):
         calibration_loop = not calibration_loop
+        if (not calibration_loop):
+            with open(file_calib_json, 'w') as calib_file:
+                json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
         print(" calibration loop : {}".format(calibration_loop))
         enable_follow = False
 
@@ -397,26 +381,13 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             enable_follow = not enable_follow
         print("enable folow {}".format(enable_follow))
 
-    if calibration_loop :
-        pass
-        # OLD CALIBRATION LOOP
-        # # move the mirror until done, then close the calib loop
-        # if (time.perf_counter() - calib_step_start_time_s > 10 ) :
-        #     calib_active_index += 1
-        #     if (calib_active_index < len(calib_points)):
-        #         point = calib_points[calib_active_index]
-        #         serial_move(calib_points[calib_active_index])
-        #         calib_step_start_time_s = time.perf_counter()
-        #     else :
-        #         calibration_loop = False
-        #         with open(file_calib_json, 'w') as calib_file:
-        #             json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
-
     if enable_follow:
         if (face_point[2] > 0) :
-            set_mirror_angle = find_closest_mirror_angle(face_point)
-            if (len(set_mirror_angle) > 0 ):
-                my_serial.serial_move(set_mirror_angle)
+            if (my_mirror_calib.solved):
+                angles = my_mirror_calib.eval(face_point)
+                angles_deg = [90 + 180 * a / math.pi for a in angles ]
+                print("{}".format(angles_deg))
+                my_serial.serial_move(angles_deg)
 
 
 #///////// 
