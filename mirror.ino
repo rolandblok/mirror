@@ -104,9 +104,9 @@ void loop_serial() {
         Serial.println("commands: ");
         Serial.println("  a 10   : set the servo 1 to 10 degrees");
         Serial.println("  b 10   : set the servo 2 to 10 degrees");
-        Serial.println("  A 10   : add the servo 1 with 10 degrees");
-        Serial.println("  B -10  : add the servo 1 with -10 degrees");
-        Serial.println("  C 10,-10  : add the servo 1 with 10,-10 degrees");
+        Serial.println("  A 10   : add the servo 1 with delta 10 degrees");
+        Serial.println("  B -10  : add the servo 1 with delta -10 degrees");
+        Serial.println("  C 10,-10  : add the servo A,B with delta 10,-10 degrees");
         Serial.println("  i - p  : left - right 1 step");
         Serial.println("  o - l  : up   - down 1 step");
         Serial.println("  I - P  : left - right 5 steps");
