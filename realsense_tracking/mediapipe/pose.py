@@ -10,6 +10,7 @@ mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
 
+# https://www.analyticsvidhya.com/blog/2022/03/pose-detection-in-image-using-mediapipe-library/
 
 # camera = '../videos/video.avi'
 # camera = '../videos/video_1440_1440.mp4'
