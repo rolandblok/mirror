@@ -3,18 +3,20 @@
 ##      MiRROR MaNaAgeR       ##
 ###############################################
 
+from doctest import FAIL_FAST
 from my_utils import *
 from fone_cam import *
 from my_aruco import *
 from my_pointcloud import *
 from my_serial import *
 from my_mirror_calib import *
+from my_face_detector import *
 
 import json
 import time, math, os.path
 import pyrealsense2 as rs
 import numpy as np
-import dlib
+
 import cv2
 print("opencv version : " + cv2.__version__ )
 
@@ -29,8 +31,7 @@ else:
 ENABLE_FONE = False
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
-ENABLE_FACE_DETECTION_HAAR = True
-ENABLE_FACE_DETECTION_DLIB = False
+ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_ARUCO_DETECTION = False
 ENABLE_SERIAL = True
 
@@ -41,7 +42,6 @@ MIRROR_ARUCO_RADIUS = 0.15 # meters
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
-face_point = [-1, -1, -1]
 calibration_loop = False
 enable_follow = False
 calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib points]
@@ -175,8 +175,9 @@ if (ENABLE_FONE):
         print("no fone camerag ")
         ENABLE_FONE = False
 
-detector = dlib.get_frontal_face_detector()                
-haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
+
+my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
+
 
 
 while ENABLE_FONE or ENABLE_RS_FEED:
@@ -202,38 +203,13 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            faces_rect = []
-            if ENABLE_FACE_DETECTION_HAAR:
-                gray_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2GRAY )
-                faces_rect = haar_cascade.detectMultiScale( gray_image, scaleFactor=1.1, minNeighbors=9)
-            if ENABLE_FACE_DETECTION_DLIB:
-                rgb_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2RGB )
-                dets = detector(rgb_image, 1)
-                for i, d in enumerate(dets):
-                    face_rect = [0]*4
-                    face_rect[0] = d.left()
-                    face_rect[1] = d.top()
-                    face_rect[2] = d.right() - d.left()
-                    face_rect[3] = d.bottom() - d.top()
-                    faces_rect.append(face_rect)
-                    print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(
-                            i, d.left(), d.top(), d.right(), d.bottom()))
-
-
-            if (len(faces_rect) == 1):
-                for (x, y, w, h) in faces_rect:
-                    
-                    cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
-                    xm = math.floor(x + w/2)
-                    ym = math.floor(y + h/2)
-
-                    # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
-                    dist = depth_frame.get_distance(xm, ym) 
-                    face_point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [xm, ym], dist)
-                    cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_point[X],face_point[Y],face_point[Z]), (xm,ym), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-            else :
-                face_point = [0,0, 0]
-
+            eye_centers = my_face_detector.detect(color_image, draw=True)
+            for eye_center in eye_centers:
+                # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
+                dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
+                face_point_3D = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
+                cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_point_3D[X],face_point_3D[Y],face_point_3D[Z]), 
+                            eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
 
             if (ENABLE_ARUCO_DETECTION):
@@ -395,9 +371,10 @@ while ENABLE_FONE or ENABLE_RS_FEED:
 print("Stop streaming")
 cv2.destroyAllWindows()
 my_serial.close()
+if ENABLE_FACE_DETECTION_MEDIAPIPE:
+    mp_face_detection.close()
 # time.sleep(1)
 # exit(0)
 if (ENABLE_RS_FEED):
     pipeline.stop()
-quit()
 
