@@ -2,7 +2,7 @@
 
 import cv2
 import queue, threading
-
+from my_utils import *
 
 # bufferless VideoCapture
 # https://stackoverflow.com/questions/54460797/how-to-disable-buffer-in-opencv-camera
@@ -45,6 +45,7 @@ class FoneCam:
         # open window and callbacks
         cv2.namedWindow('fone_cam', cv2.WINDOW_AUTOSIZE)
         # out = cv2.VideoWriter('video.avi', cv2.VideoWriter_fourcc(*'XVID'), 25, get_dims(cap, res))
+        my_fps_phone = MyFPS(30)
 
         phone_cap = VideoCapture("http://192.168.94.22:4747/video")
         if record:
@@ -53,11 +54,12 @@ class FoneCam:
           out = cv2.VideoWriter('video.avi', cv2.VideoWriter_fourcc(*'MPEG'), fps, res)
 
         while True:
-
+            my_fps_phone.add_frame()
             ret, phone_frame = phone_cap.read()
             if record:
               out.write(phone_frame)
 
+            cv2.putText(phone_frame, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
             cv2.imshow('fone_cam', phone_frame)
 
 

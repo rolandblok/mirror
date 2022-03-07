@@ -44,6 +44,14 @@ void loop_serial() {
         myservos_angles[1] = angle_read;
       }
       serial_print_raw_angles();
+    } else if (command.startsWith("cr")) {
+      int ar = command.substring(2).toInt();
+      int br = command.substring(1+command.indexOf(',')).toInt();
+      if (((ar >= 0) || (ar <= 180)) && ((br >= 0) || (br <= 180))) {
+        myservos_angles[0] = ar;
+        myservos_angles[1] = br;
+      }
+      serial_print_raw_angles();
     } else if (command.startsWith("az")) {
       long angle_read = command.substring(2).toInt();
       set_zerod_angle(0, angle_read);
@@ -52,7 +60,13 @@ void loop_serial() {
       long angle_read = command.substring(2).toInt();
       set_zerod_angle(1, angle_read);
       serial_print_zero_angles();
-    }  else if (command.startsWith("A")) {
+    } else if (command.startsWith("cz")) {
+      int angles[NO_SERVOS] = {};
+      angles[0] = command.substring(2).toInt();
+      angles[1] = command.substring(1+command.indexOf(',')).toInt();
+      set_zerod_angles(angles);
+      serial_print_zero_angles();
+    } else if (command.startsWith("A")) {
       long angle_read = command.substring(2).toInt();
       myservos_angles[0] += angle_read;
       serial_print_zero_angles();
@@ -115,10 +129,12 @@ void loop_serial() {
     } else { 
         Serial.println("commands: ");
         Serial.println(" Absolutes: ");
-        Serial.println("  ar 10   : set the raw servo 1 to 10 degrees");
-        Serial.println("  br 10   : set the raw servo 2 to 10 degrees");
-        Serial.println("  az 10   : set the servo 1 to 10 degrees");
-        Serial.println("  bz 10   : set the servo 2 to 10 degrees");
+        Serial.println("  ar 100  : set the raw servo 1 to 100 degrees");
+        Serial.println("  br 100  : set the raw servo 2 to 100 degrees");
+        Serial.println("  cr -100, 100  : set the raw servo 2 to -100, 100 degrees");
+        Serial.println("  az 10   : set the zerod servo 1 to 10 degrees");
+        Serial.println("  bz 10   : set the zerod servo 2 to 10 degrees");
+        Serial.println("  cz -10, 10   : set the zerod servo A,B 2 to -10, 10 degrees");
         Serial.println(" Deltas: ");
         Serial.println("  A 10   : add the servo 1 with delta 10 degrees");
         Serial.println("  B -10  : add the servo 1 with delta -10 degrees");

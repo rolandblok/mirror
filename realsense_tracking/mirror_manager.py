@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import cv2
 print("opencv version : " + cv2.__version__ )
 
-WERKPLAATS = False
+WERKPLAATS = True
 if WERKPLAATS:
     COM_PORT = "COM8"
     CAMERA_IP = "http://192.168.94.22:4747/video"
@@ -30,13 +30,13 @@ else:
     COM_PORT = "COM4"
     CAMERA_IP = "http://192.168.1.80:4747/video"
 
-ENABLE_FONE = False
+ENABLE_FONE = True
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 # ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_HAAR
 # ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_DLIB
-ENABLE_ARUCO_DETECTION = False
+ENABLE_ARUCO_DETECTION = True
 ENABLE_SERIAL = True
 
 STREAM_WIDTH=640
@@ -58,8 +58,8 @@ if os.path.exists(file_calib_json) :
         calib_results = json.load(calib_file)
         for calib_point in calib_results:
             angles = []
-            angles.append( (calib_point[1][0] - 90) * math.pi / 180)
-            angles.append( (calib_point[1][1] - 90) * math.pi / 180)
+            angles.append( (calib_point[1][0]) * math.pi / 180)
+            angles.append( (calib_point[1][1]) * math.pi / 180)
             my_mirror_calib.add_data(calib_point[0], angles )
         res = my_mirror_calib.solve()
         if (res):
@@ -214,15 +214,16 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            eye_centers = my_face_detector.detect(color_image, draw=True)
-            for eye_center in eye_centers:
-                # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
-                dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
-                face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
-                face_3Dpoints.append(face_3Dpoint)
-                cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
-                            eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-                cv2.drawMarker(color_image, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+            if not calibration_loop:
+                eye_centers = my_face_detector.detect(color_image, draw=True)
+                for eye_center in eye_centers:
+                    # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
+                    dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
+                    face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
+                    face_3Dpoints.append(face_3Dpoint)
+                    cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
+                                eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                    cv2.drawMarker(color_image, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
 
             if (ENABLE_ARUCO_DETECTION):
@@ -367,7 +368,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
 
     if enable_follow and len(face_3Dpoints) > 0 and (my_mirror_calib.solved):
         angles = my_mirror_calib.eval(face_3Dpoints[0])
-        angles_deg = [90 + 180 * a / math.pi for a in angles ]
+        angles_deg = [180 * a / math.pi for a in angles ]
         print("{}".format(angles_deg))
         my_serial.serial_move(angles_deg)
 

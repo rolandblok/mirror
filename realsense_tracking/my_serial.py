@@ -32,15 +32,14 @@ class MyMirrorSerial:
         mir_pos = [0,0]
         if (self.serial_connected):
             self.ser.reset_input_buffer()
-            self.ser.write(("raw\n".encode()))
+            self.ser.write(("logzero\n".encode()))
             mir_pos = self.ser.readline().decode().split(',')
             mir_pos = [int(mp) for mp in mir_pos]
         return mir_pos
 
     def serial_move(self, point):
         if (self.serial_connected):
-            print("{}".format(self.serial_write_and_read("a {}".format(point[X]))))
-            print("{}".format(self.serial_write_and_read("b {}".format(point[Y]))))
+            print("{}".format(self.serial_write_and_read("cz {}, {}".format(point[X], point[Y]))))
         else:
             print("serial not connected")
 
