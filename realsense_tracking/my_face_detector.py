@@ -18,7 +18,7 @@ class MyFaceDetector:
         self.detector_type = detector_type
 
         if (self.detector_type == DetectorType.FACE_DETECTION_MEDIAPIPE):
-            self.mp_face_detection = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+            self.mp_face_detection = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.7)
             self.mp_drawing = mp.solutions.drawing_utils
             self.mp_face_keypoints = mp.solutions.face_detection.FaceKeyPoint
 
@@ -34,7 +34,7 @@ class MyFaceDetector:
             self.mp_face_detection.close()
 
 
-    def detect(self, color_image, draw=True):
+    def detect(self, color_image, color_image_draw):
         face_eyes = []
         if (self.detector_type == DetectorType.FACE_DETECTION_DISABLE):
             return face_eyes
@@ -46,8 +46,7 @@ class MyFaceDetector:
                 xm = math.floor(x + w/2)
                 ym = math.floor(y + h/2)
                 face_eyes.append((xm,ym))
-                if(draw):
-                    cv2.rectangle(color_image, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
+                cv2.rectangle(color_image_draw, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
                 
         elif (self.detector_type == DetectorType.FACE_DETECTION_DLIB):
             rgb_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2RGB )
@@ -56,8 +55,7 @@ class MyFaceDetector:
                 xm = math.floor((d.left() + d.right())/2)
                 ym = math.floor((d.top() + d.bottom())/2)
                 face_eyes.append((xm,ym))
-                if(draw):
-                    cv2.rectangle(color_image, (d.left(), d.top() ), (d.right(), d.bottom()), (0, 255, 0), thickness=2)
+                cv2.rectangle(color_image_draw, (d.left(), d.top() ), (d.right(), d.bottom()), (0, 255, 0), thickness=2)
 
         elif (self.detector_type == DetectorType.FACE_DETECTION_MEDIAPIPE):
             color_colormap_dim = color_image.shape
@@ -65,7 +63,7 @@ class MyFaceDetector:
             faces = self.mp_face_detection.process(image_RGB)
             if faces.detections:
                 for face in faces.detections:
-                    self.mp_drawing.draw_detection(color_image, face)
+                    self.mp_drawing.draw_detection(color_image_draw, face)
                     r_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.RIGHT_EYE))
                     r_eye = (r_eye.x*color_colormap_dim[1], r_eye.y*color_colormap_dim[0])
                     l_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.LEFT_EYE))
@@ -74,9 +72,8 @@ class MyFaceDetector:
                     ym = math.floor((r_eye[Y] + l_eye[Y])/2)
                     face_eyes.append((xm,ym))
 
-                    if(draw):
-                        cv2.circle(color_image, tuple2int(r_eye), 5, (255,255,0), 2)
-                        cv2.circle(color_image, tuple2int(l_eye), 5, (255,255,0), 2)
+                    cv2.circle(color_image_draw, tuple2int(r_eye), 5, (255,255,0), 2)
+                    cv2.circle(color_image_draw, tuple2int(l_eye), 5, (255,255,0), 2)
                     
                     
         return face_eyes

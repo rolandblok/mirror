@@ -43,6 +43,7 @@ STREAM_WIDTH=640
 STREAM_HEIGHT=480
 
 MIRROR_ARUCO_RADIUS = 0.15 # meters
+FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
@@ -52,6 +53,7 @@ calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib poin
 calib_active_index = 0
 calib_step_start_time_s = 0
 calib_last_adjust_time_ns = time.perf_counter_ns()
+face_follow_last_adjust_time_ns = time.perf_counter_ns()
 my_mirror_calib = MyMirrorCalib()
 if os.path.exists(file_calib_json) :
     with open(file_calib_json, 'r') as calib_file:
@@ -208,6 +210,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             # Convert images to numpy arrays
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
+            color_image_disp = color_image.copy()
             # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
             depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
 
@@ -215,19 +218,19 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             color_colormap_dim = color_image.shape
 
             if not calibration_loop:
-                eye_centers = my_face_detector.detect(color_image, draw=True)
+                eye_centers = my_face_detector.detect(color_image, color_image_disp)
                 for eye_center in eye_centers:
                     # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
                     dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
                     face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
                     face_3Dpoints.append(face_3Dpoint)
-                    cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
+                    cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
                                 eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-                    cv2.drawMarker(color_image, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+                    cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
 
             if (ENABLE_ARUCO_DETECTION):
-                rs_arucos = my_aruco.detect_and_draw(color_image)
+                rs_arucos = my_aruco.detect_and_draw(color_image, color_image_disp)
                 for rs_aruco in rs_arucos:
                     id = rs_aruco['id']
                     if id == 17:
@@ -235,15 +238,16 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                         dist = depth_frame.get_distance(pix_pos_a17[X], pix_pos_a17[Y]) 
                         depth_a17_found = True
                         depth_a17 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, pix_pos_a17, dist)
-                        cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                        
+                        cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
-            cv2.putText(color_image, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+            cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
             if (ENABLE_RS_POINTCLOUD):
                 point_image = my_pointcloud.handle_new_frame(depth_frame, color_frame, color_image)
-                rs_image = np.hstack((color_image, depth_colormap, point_image))
+                rs_image = np.hstack((color_image_disp, depth_colormap, point_image))
             else:
-                rs_image = np.hstack((color_image, depth_colormap))
+                rs_image = np.hstack((color_image_disp, depth_colormap))
 
             cv2.imshow('RealSense', rs_image)
 
@@ -252,9 +256,10 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     # FONE CAM IMAGING
     if (ENABLE_FONE):
         ret, phone_frame = phone_cap.read()
+        phone_frame_disp = phone_frame.copy()
         my_fps_phone.add_frame()
 
-        fone_arucos = my_aruco.detect_and_draw(phone_frame)
+        fone_arucos = my_aruco.detect_and_draw(phone_frame, phone_frame_disp)
     
         # ================
         # Mirror center calibratoin
@@ -273,7 +278,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             if id == 17:
                 mirror_fone_a17_pix_pos = fone_aruco['pos'] 
                 mirror_fone_a17_pix_pos_found = True
-                cv2.drawMarker(phone_frame, mirror_fone_a17_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+                cv2.drawMarker(phone_frame_disp, mirror_fone_a17_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
         # fit the model for mirror arucos
         if hex_aruco_2_pixel_projection.solve():
@@ -281,14 +286,14 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             hex_mirror_middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
             x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0.10, 0   )))
             y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,    0.10)))
-            cv2.line(phone_frame, hex_mirror_middle, x_ax, (255,0,255), 2)
-            cv2.line(phone_frame, hex_mirror_middle, y_ax, (255,0,255), 2)
+            cv2.line(phone_frame_disp, hex_mirror_middle, x_ax, (255,0,255), 2)
+            cv2.line(phone_frame_disp, hex_mirror_middle, y_ax, (255,0,255), 2)
 
 
         # adjust mirror pos for calibration loop
         if hex_aruco_2_pixel_projection.solved and mirror_fone_a17_pix_pos_found:
             mirror_center_a17_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_a17_pix_pos)
-            cv2.putText(phone_frame, "{:.3f}:{:.3f} ".format(mirror_center_a17_pos[X], mirror_center_a17_pos[Y]), 
+            cv2.putText(phone_frame_disp, "{:.3f}:{:.3f} ".format(mirror_center_a17_pos[X], mirror_center_a17_pos[Y]), 
                 (mirror_fone_a17_pix_pos[X],mirror_fone_a17_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
 
@@ -312,9 +317,9 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     # Show images
 
     if ENABLE_FONE:
-        cv2.putText(phone_frame, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
-        cv2.imshow('Fone', phone_frame)
+        cv2.imshow('Fone', phone_frame_disp)
 
     # ==================
     #  interaction
@@ -366,11 +371,16 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         print("enable folow {}".format(enable_follow))
     
 
-    if enable_follow and len(face_3Dpoints) > 0 and (my_mirror_calib.solved):
-        angles = my_mirror_calib.eval(face_3Dpoints[0])
-        angles_deg = [180 * a / math.pi for a in angles ]
-        print("{}".format(angles_deg))
-        my_serial.serial_move(angles_deg)
+    if enable_follow and (my_mirror_calib.solved):
+        if len(face_3Dpoints) > 0:
+            face_follow_last_adjust_time_ns = time.perf_counter_ns()
+            angles = my_mirror_calib.eval(face_3Dpoints[0])
+            angles_deg = [180 * a / math.pi for a in angles ]
+            my_serial.serial_move(angles_deg)
+        elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
+            print(" return ")
+            angles_deg = [0,0]
+            my_serial.serial_move(angles_deg)
 
 
 #///////// 

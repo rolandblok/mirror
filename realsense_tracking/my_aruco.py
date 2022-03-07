@@ -11,7 +11,7 @@ class MyAruco:
         self.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
         self.aruco_params = cv2.aruco.DetectorParameters_create()
 
-    def detect_and_draw(self, detect_image):
+    def detect_and_draw(self, detect_image, draw_image):
         center_ids = []
         # https://automaticaddison.com/how-to-detect-aruco-markers-using-opencv-and-python/
         (cornerss, ids, rejected) = cv2.aruco.detectMarkers(detect_image, self.aruco_dict, parameters=self.aruco_params)
@@ -38,11 +38,11 @@ class MyAruco:
                 
                     
                 # Draw the bounding box of the ArUco detection
-                cv2.line(detect_image, top_left, top_right, (255, 255, 0), 2)
-                cv2.line(detect_image, top_right, bottom_right, (255, 255, 0), 2)
-                cv2.line(detect_image, bottom_right, bottom_left, (255, 255, 0), 2)
-                cv2.line(detect_image, bottom_left, top_left, (255, 255, 0), 2)
-                cv2.putText(detect_image, "{:.0f}".format(id), center_id['pos'], cv2.FONT_HERSHEY_SIMPLEX , 1, (255,0,255), thickness=1 )
+                cv2.line(draw_image, top_left, top_right, (255, 255, 0), 2)
+                cv2.line(draw_image, top_right, bottom_right, (255, 255, 0), 2)
+                cv2.line(draw_image, bottom_right, bottom_left, (255, 255, 0), 2)
+                cv2.line(draw_image, bottom_left, top_left, (255, 255, 0), 2)
+                cv2.putText(draw_image, "{:.0f}".format(id), center_id['pos'], cv2.FONT_HERSHEY_SIMPLEX , 1, (255,0,255), thickness=1 )
 
         return center_ids
 
