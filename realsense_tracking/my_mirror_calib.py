@@ -4,13 +4,13 @@ from scipy.optimize import curve_fit
 
 
 #                         0    1    2   3     4    5    6    7    8   9   10  11  
-def myProjection(x_coor, p11, p12, p13, p21, p22, p23, p31, p32, p33, tx, ty, tz):
+def myProjection(x_coor, p12, p13, p21, p23, p31, p32, tx,  ty,  tz):
     y_coors = []
 
     for x,y,z in x_coor:
-        xx = (tx + p11*x + p12 * y + p13 * z)
-        yy = (ty + p21*x + p22 * y + p23 * z)
-        zz = (tz + p31*x + p32 * y + p33 * z)
+        xx = (tx + 1*x + p12 * y + p13 * z)
+        yy = (ty + p21*x + 1 * y + p23 * z)
+        zz = (tz + p31*x + p32 * y + 1 * z)
         alpha = math.atan(xx/zz)
         beta  = math.atan(yy/zz)
         y_coors.append(alpha)
@@ -27,7 +27,7 @@ class MyMirrorCalib:
         self._T = []  # tx, ty, tz
         self.solved = False
     
-    def add_data(self,Fc, angles):
+    def add_data(self, Fc, angles):
         # add a data point : 
         #    Fc     : Face point in cartesian camera coordinates
         #    angles : angles of the mirror so it perpendicular to the face position : eg : you can see yourself.
@@ -50,9 +50,13 @@ class MyMirrorCalib:
     def eval(self, x) :
         p = self._P
         x = [x]
-        return myProjection(x, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11])
+        return myProjection(x, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8])
 
-        
+    def printCalibMatrix(self):
+        print("M [ {:6.3f} {:6.3f} {:6.3f}  ".format(1,          self._P[0], self._P[1]))
+        print("    {:6.3f} {:6.3f} {:6.3f}  ".format(self._P[2], 1,          self._P[3]))
+        print("    {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[4], self._P[5], 1))
+        print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[6], self._P[7], self._P[8]))
 
 
 

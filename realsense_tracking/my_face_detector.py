@@ -28,8 +28,11 @@ class MyFaceDetector:
         elif (self.detector_type == DetectorType.FACE_DETECTION_HAAR):
             self.haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
 
-    def rectCenter(self,rect):
-        return
+
+    def close(self):
+        if self.detector_type == DetectorType.FACE_DETECTION_MEDIAPIPE:
+            self.mp_face_detection.close()
+
 
     def detect(self, color_image, draw=True):
         face_eyes = []

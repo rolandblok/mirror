@@ -16,11 +16,13 @@ import json
 import time, math, os.path
 import pyrealsense2 as rs
 import numpy as np
+import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 
 import cv2
 print("opencv version : " + cv2.__version__ )
 
-WERKPLAATS = True
+WERKPLAATS = False
 if WERKPLAATS:
     COM_PORT = "COM8"
     CAMERA_IP = "http://192.168.94.22:4747/video"
@@ -32,6 +34,8 @@ ENABLE_FONE = False
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
+# ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_HAAR
+# ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_DLIB
 ENABLE_ARUCO_DETECTION = False
 ENABLE_SERIAL = True
 
@@ -59,12 +63,24 @@ if os.path.exists(file_calib_json) :
             my_mirror_calib.add_data(calib_point[0], angles )
         res = my_mirror_calib.solve()
         if (res):
-            print("  {}".format(my_mirror_calib._P))
+            my_mirror_calib.printCalibMatrix()
         else : 
             print('fit failed')
 else :
     calib_results = []
     MyMirrorCalib = 0
+
+if False:  # debug plot input data
+    if len(calib_results) > 0:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        for calib_point in calib_results:
+            ax.scatter(calib_point[0][X], calib_point[0][Y], calib_point[0][Z])
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()   
+
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
 
@@ -126,12 +142,6 @@ def my_mouse(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONDOWN:
         mouse_btns[0] = True
         print("click")
-        mir_pos = my_serial.read_pos()
-        mir_pos_x = int( mir_pos[0])
-        mir_pos_y = int( mir_pos[1])
-        if (face_point[2] > 0):
-            data_str = "{:.0f},{:.0f},{:.3f}, {}, {}".format(face_point[0], face_point[1], face_point[2], mir_pos_x, mir_pos_y)
-            print( data_str )
     if event == cv2.EVENT_LBUTTONUP:
         mouse_btns[0] = False
     if event == cv2.EVENT_RBUTTONDOWN:
@@ -185,6 +195,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     # ================
     # Realsense imaging
     depth_a17_found = False
+    face_3Dpoints = []
     if (ENABLE_RS_FEED):
         frameset = pipeline.poll_for_frames()
         if frameset.size() > 0:
@@ -207,9 +218,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             for eye_center in eye_centers:
                 # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
                 dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
-                face_point_3D = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
-                cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_point_3D[X],face_point_3D[Y],face_point_3D[Z]), 
+                face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
+                face_3Dpoints.append(face_3Dpoint)
+                cv2.putText(color_image, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
                             eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                cv2.drawMarker(color_image, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
 
             if (ENABLE_ARUCO_DETECTION):
@@ -346,24 +359,17 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         print(" calibration loop : {}".format(calibration_loop))
         enable_follow = False
 
-    elif (key == ord('a') or key == ord('A')):
-        mir_pos = my_serial.read_pos()
-        if (face_point[2] > 0):
-            data_str = "{:.0f},{:.0f},{:.3f}, {}".format(face_point[0], face_point[1], face_point[2], mir_pos)
-            print( data_str )
-
     elif (key == ord('f')) :
         if not calibration_loop:
             enable_follow = not enable_follow
         print("enable folow {}".format(enable_follow))
+    
 
-    if enable_follow:
-        if (face_point[2] > 0) :
-            if (my_mirror_calib.solved):
-                angles = my_mirror_calib.eval(face_point)
-                angles_deg = [90 + 180 * a / math.pi for a in angles ]
-                print("{}".format(angles_deg))
-                my_serial.serial_move(angles_deg)
+    if enable_follow and len(face_3Dpoints) > 0 and (my_mirror_calib.solved):
+        angles = my_mirror_calib.eval(face_3Dpoints[0])
+        angles_deg = [90 + 180 * a / math.pi for a in angles ]
+        print("{}".format(angles_deg))
+        my_serial.serial_move(angles_deg)
 
 
 #///////// 
@@ -371,8 +377,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
 print("Stop streaming")
 cv2.destroyAllWindows()
 my_serial.close()
-if ENABLE_FACE_DETECTION_MEDIAPIPE:
-    mp_face_detection.close()
+my_face_detector.close()
 # time.sleep(1)
 # exit(0)
 if (ENABLE_RS_FEED):

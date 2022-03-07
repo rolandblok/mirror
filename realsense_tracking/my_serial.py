@@ -41,7 +41,6 @@ class MyMirrorSerial:
         if (self.serial_connected):
             print("{}".format(self.serial_write_and_read("a {}".format(point[X]))))
             print("{}".format(self.serial_write_and_read("b {}".format(point[Y]))))
-            time.sleep(0.2)
         else:
             print("serial not connected")
 
@@ -50,7 +49,6 @@ class MyMirrorSerial:
             delta_x = round(delta_x)
             delta_y = round(delta_y)
             print("{}".format(self.serial_write_and_read("C {}, {}".format(delta_x, delta_y))))
-            time.sleep(0.2)
         else:
             print("serial not connected")
 

@@ -72,3 +72,14 @@ def sunPosition(lat=51.441642, long=5.4697225, in_degrees=False):
         return el_rad*180/math.pi, az_rad*180/math.pi
     else:
         return el_rad, az_rad
+
+
+# https://itk.org/files/Examples/src/Core/Transform/CartesianToAzimuthElevation/Documentation.html
+def xyz2elaz(x,y,z):
+    azimuth = math.arctan(x/y)
+    elevation = math.arctan(y/z)
+    return (elevation, azimuth)
+
+
+if __name__ == '__main__':
+    print(sunPosition())
