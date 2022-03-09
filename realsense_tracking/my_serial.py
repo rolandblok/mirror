@@ -6,8 +6,10 @@ from my_utils import *
 
 class MyMirrorSerial:
 
-    def __init__(self, port):
+    def __init__(self, port, debug_on = False):
         self.serial_connected = False
+        self.debug_on = debug_on
+
         if port != "":
             from serial.tools import list_ports
             com_ports = list_ports.comports()
@@ -39,7 +41,9 @@ class MyMirrorSerial:
 
     def serial_move(self, point):
         if (self.serial_connected):
-            print("{}".format(self.serial_write_and_read("cz {}, {}".format(point[X], point[Y]))))
+            angles = self.serial_write_and_read("cz {}, {}".format(point[X], point[Y]))
+            if self.debug_on:
+                print("{}".format(angles))
         else:
             print("serial not connected")
 
@@ -47,7 +51,9 @@ class MyMirrorSerial:
         if (self.serial_connected):
             delta_x = round(delta_x)
             delta_y = round(delta_y)
-            print("{}".format(self.serial_write_and_read("C {}, {}".format(delta_x, delta_y))))
+            angles = self.serial_write_and_read("C {}, {}".format(delta_x, delta_y))
+            if self.debug_on:
+                print("{}".format(angles))
         else:
             print("serial not connected")
 

@@ -4,6 +4,8 @@
 ###############################################
 
 from doctest import FAIL_FAST
+
+from cv2 import floodFill
 from my_utils import *
 from fone_cam import *
 from my_aruco import *
@@ -30,7 +32,7 @@ else:
     COM_PORT = "COM4"
     CAMERA_IP = "http://192.168.1.80:4747/video"
 
-ENABLE_FONE = True
+ENABLE_FONE = False
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
@@ -45,10 +47,15 @@ STREAM_HEIGHT=480
 MIRROR_ARUCO_RADIUS = 0.15 # meters
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
 
+class FollowMode(Enum):
+    DISABLE = 0
+    CALIBRATE = 1
+    MONO = 2
+    DUO = 3
+
 # init globalsss 
 file_calib_json = 'calib_pos.json'
-calibration_loop = False
-enable_follow = False
+follow_mode = FollowMode.DISABLE
 calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib points]
 calib_active_index = 0
 calib_step_start_time_s = 0
@@ -63,25 +70,30 @@ if os.path.exists(file_calib_json) :
             angles.append( (calib_point[1][0]) * math.pi / 180)
             angles.append( (calib_point[1][1]) * math.pi / 180)
             my_mirror_calib.add_data(calib_point[0], angles )
+
+        if False:  # debug plot input data
+            if len(calib_results) > 0:
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                for calib_point in calib_results:
+                    ax.scatter(calib_point[0][X], calib_point[0][Y], calib_point[0][Z])
+                ax.set_xlabel('X')
+                ax.set_ylabel('Y')
+                ax.set_zlabel('Z')
+                plt.show() 
+
         res = my_mirror_calib.solve()
         if (res):
             my_mirror_calib.printCalibMatrix()
+            my_mirror_calib.printResiduals()
+            my_mirror_calib.printResidualsStatistics()
         else : 
             print('fit failed')
 else :
     calib_results = []
     MyMirrorCalib = 0
 
-if False:  # debug plot input data
-    if len(calib_results) > 0:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        for calib_point in calib_results:
-            ax.scatter(calib_point[0][X], calib_point[0][Y], calib_point[0][Z])
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        plt.show()   
+  
 
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
@@ -217,7 +229,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            if not calibration_loop:
+            if not follow_mode == FollowMode.CALIBRATE:
                 eye_centers = my_face_detector.detect(color_image, color_image_disp)
                 for eye_center in eye_centers:
                     # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
@@ -297,7 +309,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 (mirror_fone_a17_pix_pos[X],mirror_fone_a17_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
 
-            if calibration_loop and depth_a17_found:
+            if (follow_mode == FollowMode.CALIBRATE) and depth_a17_found:
 
                 delay_ms = cv2.getTrackbarPos('delay_ms', 'Parameters')
                 if (time.perf_counter_ns() - calib_last_adjust_time_ns) > delay_ms*1000000:
@@ -309,6 +321,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                     if round(d_angle_x) == 0 and round(d_angle_y) == 0 :
                         angle_pos = my_serial.read_pos()
                         calib_results.append([depth_a17, angle_pos])
+                        print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
                         my_serial.serial_delta_move(-d_angle_x, -d_angle_y)
 
@@ -321,11 +334,34 @@ while ENABLE_FONE or ENABLE_RS_FEED:
 
         cv2.imshow('Fone', phone_frame_disp)
 
+    # face following
+    if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):
+        if (follow_mode == FollowMode.MONO) and len(face_3Dpoints) > 0:
+                face_follow_last_adjust_time_ns = time.perf_counter_ns()
+                angles = my_mirror_calib.eval(face_3Dpoints[0])
+                angles_deg = [180 * a / math.pi for a in angles ]
+                my_serial.serial_move(angles_deg)
+        elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
+                face_follow_last_adjust_time_ns = time.perf_counter_ns()
+                angles0 = my_mirror_calib.eval(face_3Dpoints[0])
+                angles1 = my_mirror_calib.eval(face_3Dpoints[1])
+                angles_deg0 = [180 * a / math.pi for a in angles0 ]
+                angles_deg1 = [180 * a / math.pi for a in angles1 ]
+                angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
+                my_serial.serial_move(angles_deg_av)
+        elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
+            face_follow_last_adjust_time_ns = time.perf_counter_ns()
+            angles_deg = [0,0]
+            my_serial.serial_move(angles_deg)
+
+
     # ==================
     #  interaction
 
     key = cv2.waitKey(1)
-    if(key == ord('q') or key == ord('Q')):
+    if key == -1:
+        pass
+    elif(key == ord('q') or key == ord('Q')):
         print("quiting")
         break
     elif (key == ord('o')):
@@ -358,29 +394,38 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         print("{}".format(my_serial.serial_write_and_read("6")))
 
     elif (key == ord('c')):
-        calibration_loop = not calibration_loop
-        if (not calibration_loop):
+        if follow_mode == FollowMode.CALIBRATE:  # dump the data
             with open(file_calib_json, 'w') as calib_file:
                 json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
-        print(" calibration loop : {}".format(calibration_loop))
-        enable_follow = False
+            follow_mode = FollowMode.DISABLE
+        else:
+            follow_mode = FollowMode.CALIBRATE
+        print("caribation loop {}".format(follow_mode))
 
+    elif (key == ord('s')) : 
+        if follow_mode != FollowMode.CALIBRATE:
+            follow_mode = FollowMode.DISABLE
+        print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
-        if not calibration_loop:
-            enable_follow = not enable_follow
-        print("enable folow {}".format(enable_follow))
-    
+        if follow_mode != FollowMode.CALIBRATE:
+            follow_mode = FollowMode.MONO
+        print("enable follow {}".format(follow_mode))
+    elif (key == ord('g')) :
+        if follow_mode != FollowMode.CALIBRATE:
+            follow_mode = FollowMode.DUO
+        print("enable follow {}".format(follow_mode))
 
-    if enable_follow and (my_mirror_calib.solved):
-        if len(face_3Dpoints) > 0:
-            face_follow_last_adjust_time_ns = time.perf_counter_ns()
-            angles = my_mirror_calib.eval(face_3Dpoints[0])
-            angles_deg = [180 * a / math.pi for a in angles ]
-            my_serial.serial_move(angles_deg)
-        elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
-            print(" return ")
-            angles_deg = [0,0]
-            my_serial.serial_move(angles_deg)
+    else :
+        print(chr(key) + " pressed, unknow command")
+        print(" q : quit")
+        print(" s : stop follow")
+        print(" f : follow mono")
+        print(" g : follow duo")
+        print(" c : calibration (need to press c again to safe calibration data!)")
+        print(" I i p P : left / right")
+        print(" O o l L : up / down")
+
+    
 
 
 #///////// 
