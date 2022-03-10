@@ -34,14 +34,14 @@ class MyMirrorSerial:
         mir_pos = [0,0]
         if (self.serial_connected):
             self.ser.reset_input_buffer()
-            self.ser.write(("logzero\n".encode()))
+            self.ser.write(("logpos\n".encode()))
             mir_pos = self.ser.readline().decode().split(',')
             mir_pos = [int(mp) for mp in mir_pos]
         return mir_pos
 
     def serial_move(self, point):
         if (self.serial_connected):
-            angles = self.serial_write_and_read("cz {}, {}".format(point[X], point[Y]))
+            angles = self.serial_write_and_read("c {}, {}".format(point[X], point[Y]))
             if self.debug_on:
                 print("{}".format(angles))
         else:
