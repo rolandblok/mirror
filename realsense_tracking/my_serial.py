@@ -7,8 +7,9 @@ from my_utils import *
 class MyMirrorSerial:
 
     def __init__(self, port, debug_on = False):
-        self.serial_connected = False
+        self.serial_connected = True
         self.debug_on = debug_on
+        self.swap_XY = True
 
         if port != "":
             from serial.tools import list_ports
@@ -41,6 +42,8 @@ class MyMirrorSerial:
 
     def serial_move(self, point):
         if (self.serial_connected):
+            if (self.swap_XY):
+                point[Y], point[X] = point[X], point[Y]
             angles = self.serial_write_and_read("c {}, {}".format(point[X], point[Y]))
             if self.debug_on:
                 print("{}".format(angles))
@@ -51,6 +54,8 @@ class MyMirrorSerial:
         if (self.serial_connected):
             delta_x = round(delta_x)
             delta_y = round(delta_y)
+            if (self.swap_XY):
+                delta_y, delta_x = delta_x, delta_y
             angles = self.serial_write_and_read("C {}, {}".format(delta_x, delta_y))
             if self.debug_on:
                 print("{}".format(angles))

@@ -282,12 +282,19 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             id = fone_aruco['id']
             if id == 0:
                 # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-                hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            if id == 1:
-                hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            if id == 2:
-                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            if id == 17:
+                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
+            elif id == 1:
+                hex_aruco_2_pixel_projection.add_measurement((-MIRROR_ARUCO_RADIUS, 0), fone_aruco['pos'])
+            elif id == 2:
+                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,+0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
+            # if id == 0:
+            #     # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
+            #     hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            # if id == 1:
+            #     hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            # if id == 2:
+            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            elif id == 17:
                 mirror_fone_a17_pix_pos = fone_aruco['pos'] 
                 mirror_fone_a17_pix_pos_found = True
                 cv2.drawMarker(phone_frame_disp, mirror_fone_a17_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
@@ -323,14 +330,14 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                         calib_results.append([depth_a17, angle_pos])
                         print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
-                        my_serial.serial_delta_move(-d_angle_x, -d_angle_y)
+                        my_serial.serial_delta_move(d_angle_x,-d_angle_y)
 
 
 
     # Show images
 
     if ENABLE_FONE:
-        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_qfps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
         cv2.imshow('Fone', phone_frame_disp)
 
@@ -340,6 +347,8 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 angles = my_mirror_calib.eval(face_3Dpoints[0])
                 angles_deg = [180 * a / math.pi for a in angles ]
+                angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
+                
                 my_serial.serial_move(angles_deg)
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
@@ -348,6 +357,8 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 angles_deg0 = [180 * a / math.pi for a in angles0 ]
                 angles_deg1 = [180 * a / math.pi for a in angles1 ]
                 angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
+
+                angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 my_serial.serial_move(angles_deg_av)
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()

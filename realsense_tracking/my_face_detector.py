@@ -62,18 +62,26 @@ class MyFaceDetector:
             image_RGB = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
             faces = self.mp_face_detection.process(image_RGB)
             if faces.detections:
-                for face in faces.detections:
+                for face in faces.detections:  # dir(mp.solutions.face_detection.FaceKeyPoint)
                     self.mp_drawing.draw_detection(color_image_draw, face)
                     r_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.RIGHT_EYE))
                     r_eye = (r_eye.x*color_colormap_dim[1], r_eye.y*color_colormap_dim[0])
                     l_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.LEFT_EYE))
                     l_eye = (l_eye.x*color_colormap_dim[1], l_eye.y*color_colormap_dim[0])
-                    xm = math.floor((r_eye[X] + l_eye[X])/2)
-                    ym = math.floor((r_eye[Y] + l_eye[Y])/2)
-                    face_eyes.append((xm,ym))
+                    nose = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.NOSE_TIP))
+                    nose = (nose.x*color_colormap_dim[1], nose.y*color_colormap_dim[0])
+                    if (False): # use eyese
+                        xm = math.floor((r_eye[X] + l_eye[X])/2)
+                        ym = math.floor((r_eye[Y] + l_eye[Y])/2)
+                        face_eyes.append((xm,ym))
+                    else:  # use nose
+                        xm = math.floor(nose[X])
+                        ym = math.floor(nose[Y])
+                        face_eyes.append((xm,ym))
 
                     cv2.circle(color_image_draw, tuple2int(r_eye), 5, (255,255,0), 2)
                     cv2.circle(color_image_draw, tuple2int(l_eye), 5, (255,255,0), 2)
+                    cv2.circle(color_image_draw, tuple2int(nose), 5, (255,255,0), 2)
                     
                     
         return face_eyes

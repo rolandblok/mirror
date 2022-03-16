@@ -12,6 +12,7 @@
 typedef struct EepromMem_struct {
   byte    valid;
   int     zero_offsets[NO_SERVOS];
+  uint8_t i2c_adress;   // zero if master
   
   byte    checksum;
 } EepromMem;
@@ -45,6 +46,15 @@ void  eeprom_getZeroOffsets(int zo[NO_SERVOS]) {
   }
 }
 
+void  eeprom_setI2CAdress(uint8_t i2c_adress) {
+  eeprom_mem_glb.i2c_adress = i2c_adress;
+  eeprom_write();
+}
+
+uint8_t  eeprom_getI2CAdress() {
+  return eeprom_mem_glb.i2c_adress;
+}
+
 
 // ================
 // SPECIFIC HELPERS
@@ -54,6 +64,7 @@ byte checksum(EepromMem eeprom_memo_arg) {
   for (int s = 0; s < NO_SERVOS; s++) {
     checksum += eeprom_memo_arg.zero_offsets[s];
   }
+  checksum += eeprom_mem_glb.i2c_adress;
   return checksum;
 }
 
