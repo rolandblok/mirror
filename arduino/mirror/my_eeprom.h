@@ -1,6 +1,8 @@
 #ifndef MY_EEPROM_AA
 #define MY_EEPROM_AA
+#include <Arduino.h>
 
+#include "my_config.h"
 
 //==========================
 #define NO_SERVOS          (2)

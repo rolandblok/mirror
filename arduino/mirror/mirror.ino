@@ -1,27 +1,11 @@
-#include <Servo.h>
 #include <math.h>
 #include <Wire.h>
 
+#include "my_config.h"
 #include "my_eeprom.h"
-
-#define SERVO_MAX  (130)
-#define SERVO_MIN  (50)
+#include "my_servo.h"
 
 
-#define PIN_SERVO_1 (8)
-#define NO_SERVOS   (2)
-
-Servo myservos[NO_SERVOS];
-int   myservos_angles[NO_SERVOS];
-int   myservos_angles_zero_offsets[NO_SERVOS];
-
-bool sinus_motion = false;
-
-/**
- * BROWN  = GROUND
- * RED    = 5V
- * ORANGE = signal (pwm)
- */
 
 void(*resetFunc) (void) = 0; 
 
@@ -56,17 +40,17 @@ void loop_serial() {
       serial_print_raw_angles();
     } else if (command.startsWith("a")) {
       long angle_read = command.substring(2).toInt();
-      set_calibrated_angle(0, angle_read);
+      servo_set_calibrated_angle(0, angle_read);
       serial_print_calibrated_angles();
     } else if (command.startsWith("b")) {
       long angle_read = command.substring(2).toInt();
-      set_calibrated_angle(1, angle_read);
+      servo_set_calibrated_angle(1, angle_read);
       serial_print_calibrated_angles();
     } else if (command.startsWith("c")) {
       int angles[NO_SERVOS] = {};
       angles[0] = command.substring(2).toInt();
       angles[1] = command.substring(1+command.indexOf(',')).toInt();
-      set_calibrated_angles(angles);
+      servo_set_calibrated_angles(angles);
       serial_print_calibrated_angles();
     } else if (command.startsWith("A")) {
       long angle_read = command.substring(2).toInt();
@@ -99,7 +83,7 @@ void loop_serial() {
         myservos_angles[1] = 130;
         serial_print_calibrated_angles();
     } else if (command.equals("s")) {
-        sinus_motion = ! sinus_motion;
+        servo_switch_sinus_loop();
     } else if (command.equals("o")) {
         myservos_angles[0] += 1;
         serial_print_calibrated_angles();
@@ -135,7 +119,7 @@ void loop_serial() {
     } else if (command.equals("clreepr")) {
         eeprom_clear();
     } else if (command.equals("zero")) {
-        zero();
+        servo_zero();
     } else { 
         Serial.println("commands: ");
         Serial.println(" Absolutes: ");
@@ -172,36 +156,9 @@ void loop_serial() {
 // I2C position getters and setters 
 // ================================
 
-
-
-// ============================
-// position getters and setters
-// ============================
-void get_calibrated_angles(int angles_ret[NO_SERVOS]) {
-  for (int s = 0; s < NO_SERVOS; s ++) {
-    angles_ret[s] = get_calibrated_angle(s);
-  }
-}
-int get_calibrated_angle(int s) {
-  int zerod_angle = myservos_angles[s] - myservos_angles_zero_offsets[s];
-  return zerod_angle;
-}
-
-void set_calibrated_angles(int angles[NO_SERVOS]) {
-  for (int s = 0; s < NO_SERVOS; s ++) {
-    set_calibrated_angle(s, angles[s]);
-  }
-}
-void set_calibrated_angle(int s, int angle) {
-  if ((angle >= -90) || (angle <= 90)) {
-    myservos_angles[s] = angle + myservos_angles_zero_offsets[s];
-  }
-}
-
-
 void serial_print_calibrated_angles() {
   int calibrated_angles[NO_SERVOS] = {};
-  get_calibrated_angles(calibrated_angles);
+  servo_get_calibrated_angles(calibrated_angles);
   for (int s = 0; s < NO_SERVOS-1; s ++) {
     Serial.print(String(calibrated_angles[s]) + " , ");
   }
@@ -222,16 +179,6 @@ void serial_print_zero_offsets() {
   Serial.println(String(myservos_angles_zero_offsets[NO_SERVOS-1]) );
 }
 
-// ============
-// zero
-// ============
-void zero(){
-  for (int s = 0; s < NO_SERVOS; s ++) {
-    myservos_angles_zero_offsets[s] = myservos_angles[s];
-  }
-  eeprom_setZeroOffsets(myservos_angles_zero_offsets);
-  eeprom_serial();
-}
 
 /** ===============================
  * Startup routine
@@ -247,20 +194,10 @@ void setup() {
     eeprom_clear();
     eeprom_serial();
   }
-  
-  eeprom_getZeroOffsets(myservos_angles_zero_offsets);
-  
-  for (int s = 0; s < NO_SERVOS; s ++) {
-    myservos[s].attach(PIN_SERVO_1+s);  
-    set_calibrated_angle(s, 0);
-  }
 
-  // enable i2c when the adress is set. If not (zero) then don't use
-  if (eeprom_getI2CAdress() > 0) {
-    Wire.begin(eeprom_getI2CAdress());
-    Wire.onRequest(my_i2cRequestEvent);
-    
-  }
+  setup_i2c();
+
+  servo_setup();
 
 }
 
@@ -269,31 +206,9 @@ void setup() {
  */
  void loop() {
   loop_serial();
+  loop_i2c();
 
-  if (sinus_motion) {
-    sinus_loop();
-  }
+  servo_loop();
 
-  for (int s = 0; s < NO_SERVOS; s++) {
-    if (myservos_angles[s] > SERVO_MAX) {
-      myservos_angles[s] = SERVO_MAX;
-      Serial.println(" SERVO MAX LIMIT for servo " + String(s));
-    } else if (myservos_angles[s] < SERVO_MIN) {
-      myservos_angles[s] = SERVO_MIN;
-      Serial.println(" SERVO MIN LIMIT for servo " + String(s));
-    }
-    myservos[s].write(myservos_angles[s]);              // tell servo to go to position in variable 'pos'
-  }
   delay(0);         
 }
-
-void sinus_loop() {
-  float phase = (float) millis() / 1000 ;
-
-  float a0 = 90.0 + 40 * cos(phase);
-  float a1 = 90.0 + 40 * sin(phase);
-
-  myservos_angles[0] = (int) a0;
-  myservos_angles[1] = (int) a1;
-  
- }
