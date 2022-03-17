@@ -1,5 +1,3 @@
-
-
 import cv2
 import queue, threading
 from my_utils import *
@@ -39,7 +37,7 @@ class VideoCapture:
 
 
 class FoneCam:
-    def __init__(self, url, record = False):
+    def __init__(self, url="http://192.168.94.22:4747/video", record = False):
 
         # ========================
         # open window and callbacks
