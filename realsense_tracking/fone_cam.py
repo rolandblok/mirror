@@ -39,7 +39,7 @@ class VideoCapture:
 
 
 class FoneCam:
-    def __init__(self, record = False):
+    def __init__(self, url, record = False):
 
         # ========================
         # open window and callbacks
@@ -47,7 +47,7 @@ class FoneCam:
         # out = cv2.VideoWriter('video.avi', cv2.VideoWriter_fourcc(*'XVID'), 25, get_dims(cap, res))
         my_fps_phone = MyFPS(30)
 
-        phone_cap = VideoCapture("http://192.168.94.22:4747/video")
+        phone_cap = VideoCapture(url)
         if record:
           fps = phone_cap.get(cv2.CAP_PROP_FPS)
           res = (int(phone_cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(phone_cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -84,4 +84,6 @@ class FoneCam:
 #  TESTING
 # ===========================
 if __name__ == '__main__':
-  phone_cap = FoneCam(True)
+  # url = "http://192.168.94.22:4747/video"
+  url = "http://192.168.1.80:4747/video"
+  phone_cap = FoneCam(url, True)
