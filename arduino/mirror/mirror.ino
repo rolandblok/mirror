@@ -1,6 +1,7 @@
 
 
 #include "my_config.h"
+#include "my_util.h"
 #include "my_eeprom.h"
 #include "my_servo.h"
 #include "my_I2C.h"
@@ -9,13 +10,7 @@
 
 void(*resetFunc) (void) = 0; 
 
-int serial_read_int(String s) {
-    return s.substring(1+s.indexOf(' ')).toInt();
-}
-void serial_read_int2(String s, int ser_data[NO_SERVOS]) {
-  ser_data[0] = s.substring(1+s.indexOf(' ')).toInt();
-  ser_data[1] = s.substring(1+s.indexOf(',')).toInt();
-}
+
 
 void serial_loop() {
   // ===============
@@ -28,32 +23,32 @@ void serial_loop() {
         resetFunc();
         delay(1000);
     } else if (ser_command.startsWith("r")) {
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         if ((ser_data[0] >= 0) || (ser_data[0] <= 180)) {
           servo_set_raw_angle(0, ser_data[0]);
         }
     } else if (ser_command.startsWith("t")) {
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         if ((ser_data[0] >= -90) || (ser_data[0] <= 90)) {
           servo_set_raw_angle(1, ser_data[0]);
         }
     } else if (ser_command.startsWith("a")) {
-        ser_data[0]= serial_read_int(ser_command);
+        ser_data[0]= string_read_int(ser_command);
         servo_set_calibrated_angle(0, ser_data[0]);
     } else if (ser_command.startsWith("b")){
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         servo_set_calibrated_angle(1, ser_data[0]);
     } else if (ser_command.startsWith("c")){
-        serial_read_int2(ser_command, ser_data);
+        string_read_int2(ser_command, ser_data);
         servo_set_calibrated_angles(ser_data);
     } else if (ser_command.startsWith("A")) {
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         servo_add_angle(0, ser_data[0]);
     } else if (ser_command.startsWith("B")) {
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         servo_add_angle(1, ser_data[0]);
     } else if (ser_command.startsWith("C")){
-        serial_read_int2(ser_command,ser_data);
+        string_read_int2(ser_command,ser_data);
         servo_add_angles(ser_data);
     } else if (ser_command.startsWith("1")) {
         servo_set_raw_angle(0, 50);
@@ -98,13 +93,13 @@ void serial_loop() {
     } else if (ser_command.startsWith("z")) {
         servo_zero();
     } else if (ser_command.startsWith("Ws")) {
-        ser_data[0] = serial_read_int(ser_command);
+        ser_data[0] = string_read_int(ser_command);
         Serial.println("adress " + String(ser_data[0]));
         eeprom_setI2CAdress(ser_data[0]);
     } else if (ser_command.startsWith("Wz")) {
       if (eeprom_getI2CAdress() == 0) {
-        ser_data[0] = serial_read_int(ser_command);
-        i2c_send_zero(ser_data[0]);
+        ser_data[0] = string_read_int(ser_command);
+        i2c_master_send_zero(ser_data[0]);
       }
     } else {         
       Serial.println("unknown command " + String(ser_command));
