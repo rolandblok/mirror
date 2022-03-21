@@ -35,7 +35,7 @@ class MyMirrorSerial:
         mir_pos = [0,0]
         if (self.serial_connected):
             self.ser.reset_input_buffer()
-            self.ser.write(("logpos\n".encode()))
+            self.ser.write(("kp\n".encode()))
             mir_pos = self.ser.readline().decode().split(',')
             mir_pos = [int(mp) for mp in mir_pos]
         return mir_pos

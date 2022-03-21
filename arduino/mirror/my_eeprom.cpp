@@ -22,7 +22,6 @@ typedef struct EepromMem_struct {
 EepromMem eeprom_mem_glb;
 
 
-
 // ===============
 // getters setters
 // ===============
@@ -60,21 +59,28 @@ uint8_t  eeprom_getI2CAdress() {
 // SPECIFIC HELPERS
 // ================
 byte checksum(EepromMem eeprom_memo_arg) {
-  int checksum = 1;
+  byte checksum_v = 1;
   for (int s = 0; s < NO_SERVOS; s++) {
-    checksum += eeprom_memo_arg.zero_offsets[s];
+    checksum_v += (byte) eeprom_memo_arg.zero_offsets[s];
   }
-  checksum += eeprom_mem_glb.i2c_adress;
-  return checksum;
+  checksum_v += eeprom_memo_arg.i2c_adress;
+  return checksum_v;
 }
 
-void eeprom_serial() {
+void _eeprom_serial(EepromMem eeprom_mem_tmp) {
   Serial.println("--EEPROM--------");
+  Serial.println(" valid " + String(eeprom_mem_tmp.valid) );  
   for (int s = 0; s < NO_SERVOS; s ++) {
-     Serial.println(" zero_offset [" + String(s) + "] : " + String(eeprom_mem_glb.zero_offsets[s]));
+     Serial.println(" zero_offset [" + String(s) + "] : " + String(eeprom_mem_tmp.zero_offsets[s]));
   }
+  Serial.println(" i2c adress : " + String(eeprom_mem_tmp.i2c_adress) );  
+  Serial.println(" checksum " + String(eeprom_mem_tmp.checksum) );  
   Serial.println("----------------");
 }
+void eeprom_serial() {
+  _eeprom_serial(eeprom_mem_glb);
+}
+
 
 void eeprom_clear() {
   for (int s = 0; s < NO_SERVOS; s++) {
@@ -88,7 +94,7 @@ void eeprom_clear() {
 // GENERICS
 // ===============
 bool eeprom_init() {
-  EepromMem eeprom_mem_tmp = {};
+  EepromMem eeprom_mem_tmp;
   EEPROM.get(0, eeprom_mem_tmp);
   if (eeprom_mem_tmp.valid == 1) {
     if (eeprom_mem_tmp.checksum == checksum(eeprom_mem_tmp)) {
