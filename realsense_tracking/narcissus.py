@@ -26,13 +26,13 @@ print("opencv version : " + cv2.__version__ )
 
 WERKPLAATS = True
 if WERKPLAATS:
-    COM_PORT = "COM8"
+    COM_PORT = "COM3"
     CAMERA_IP = "http://192.168.94.22:4747/video"
 else: 
     COM_PORT = "COM4"
     CAMERA_IP = "http://192.168.1.80:4747/video"
 
-ENABLE_FONE = False
+ENABLE_FONE = True
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
@@ -337,7 +337,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
     # Show images
 
     if ENABLE_FONE:
-        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_qfps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
         cv2.imshow('Fone', phone_frame_disp)
 
