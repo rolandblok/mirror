@@ -17,7 +17,7 @@ void serial_loop() {
   // serial business
   if (Serial.available() > 0) {
     String ser_command = Serial.readStringUntil(10);
-    int ser_data[NO_SERVOS];
+    int ser_data[3];
     if (ser_command.startsWith("R")) {   // Restart
         Serial.end();  //clears the serial monitor  if used
         resetFunc();
@@ -100,6 +100,22 @@ void serial_loop() {
       if (eeprom_getI2CAdress() == 0) {
         ser_data[0] = string_read_int(ser_command);
         i2c_master_send_zero(ser_data[0]);
+      }
+    } else if (ser_command.startsWith("Wc")) {  // SET position data
+      if (eeprom_getI2CAdress() == 0) {
+        string_read_int3(ser_command, ser_data);
+        i2c_master_send_cal_pos(ser_data[0], ser_data[1], ser_data[2]);
+      }
+    } else if (ser_command.startsWith("WC")) {  // SET position data
+      if (eeprom_getI2CAdress() == 0) {
+        string_read_int3(ser_command, ser_data);
+        i2c_master_send_delta(ser_data[0], ser_data[1], ser_data[2]);
+      }
+    } else if (ser_command.startsWith("Wp")) {  // SET position data
+      if (eeprom_getI2CAdress() == 0) {
+        string_read_int1(ser_command, ser_data);
+        Point p = i2c_master_get_calibrated_pos(ser_data[0]);
+        Serial.println(String(p.x) + "," + String(p.y));
       }
     } else {         
       Serial.println("unknown command " + String(ser_command));

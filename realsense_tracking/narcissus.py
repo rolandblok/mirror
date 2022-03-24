@@ -26,13 +26,13 @@ print("opencv version : " + cv2.__version__ )
 
 WERKPLAATS = True
 if WERKPLAATS:
-    COM_PORT = "COM3"
+    COM_PORT = "COM8"
     CAMERA_IP = "http://192.168.94.22:4747/video"
 else: 
     COM_PORT = "COM4"
     CAMERA_IP = "http://192.168.1.80:4747/video"
 
-ENABLE_FONE = True
+ENABLE_FONE = False
 ENABLE_RS_FEED = True
 ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE

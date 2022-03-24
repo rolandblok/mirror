@@ -81,12 +81,12 @@ void _my_slave_i2cRequestEvent(int how_many) {
   Serial.println(" how_many :" + String(how_many));         // print the character
 
   // get the command string
-  String command = "";
+  String command;
   while (Wire.available()) { // loop through all but the last
-    command = Wire.read(); // receive byte as a character
-    Serial.print(String(command));         // print the character
+    char c = (char)Wire.read(); // receive byte as a character
+    command.concat(c);        
   }
-  Serial.println(" end of command");
+  Serial.println("command received : " + command);
 
   // interprete the command and if needed read or send the data
   int angles[NO_SERVOS];
