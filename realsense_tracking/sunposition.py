@@ -1,7 +1,7 @@
 import time, math
 
 # https://stackoverflow.com/questions/8708048/position-of-the-sun-given-time-of-day-latitude-and-longitude
-def sunPosition(lat=51.441642, long=5.4697225, in_degrees=False):
+def sunPosition(lat=51.441642, long=5.4697225, in_degrees=True):
     # Latitude [rad]
     lat_rad = math.radians(lat)
 
@@ -13,6 +13,15 @@ def sunPosition(lat=51.441642, long=5.4697225, in_degrees=False):
     delta = time.gmtime().tm_year - 1949
     leap = delta / 4
     jd = 32916.5 + delta * 365 + leap + day + hour / 24
+    # print ("year   {}".format(time.gmtime().tm_year))
+    # print ("yday   {}".format(time.gmtime().tm_yday))
+    # print ("hour   {}".format(time.gmtime().tm_hour))
+    # print ("minute {}".format(time.gmtime().tm_min))
+    # print ("second {}".format(time.gmtime().tm_sec))
+    # print ("cur_hr   {}".format(hour))
+    # print ("leap   {}".format(leap))
+    # print ("delta   {}".format(delta))
+    # print ("jd {}".format(jd))
 
     # The input to the Atronomer's almanach is the difference between
     # the Julian date and JD 2451545.0 (noon, 1 January 2000)
@@ -80,6 +89,8 @@ def xyz2elaz(x,y,z):
     elevation = math.arctan(y/z)
     return (elevation, azimuth)
 
+import calendar
 
 if __name__ == '__main__':
+    print (calendar.timegm(time.gmtime()))
     print(sunPosition())
