@@ -5,8 +5,10 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
-#define SERVO_ANGLE_MAX  (130)
-#define SERVO_ANGLE_MIN  (50)
+//#define SERVO_ANGLE_MAX  ( 40)
+//#define SERVO_ANGLE_MIN  (-40)
+#define SERVO_ANGLE_MAX  ( 90)
+#define SERVO_ANGLE_MIN  (-90)
 
 
 #define NO_MIRRORS (8)

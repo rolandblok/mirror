@@ -18,13 +18,20 @@ int   myservos_angles[NO_SERVOS];
 // ======================
 // HELPERS
 // ======================
-int   get_servo(int mirror, int angle) {
-  return mirror * NO_ANGLES_PER_MIRROR + angle;
+int   get_servo(int mirror, int a) {
+  return mirror * NO_ANGLES_PER_MIRROR + a;
 }
 
-int angle_2_pulse_width(int angle) {
-  int pulse_width = map(angle, 0, 180, USMIN, USMAX);
-  return pulse_width;
+bool _activate_servo(int s, int angle) {
+  if ((angle >= SERVO_ANGLE_MIN) && (angle <= SERVO_ANGLE_MAX)) {
+    myservos_angles[s] = angle;
+    int pulse_width = map(angle, -90, 90, SERVOMIN, SERVOMAX);
+    servo_controller.setPWM(s, 0, pulse_width);
+    return true;
+  } else {
+    return false;
+  }
+
 }
 
 // ============================
@@ -34,6 +41,9 @@ void mirror_setup(void) {
     servo_controller.begin();
     servo_controller.setOscillatorFrequency(27000000);
     servo_controller.setPWMFreq(SERVO_FREQ);
+    for (int s = 0; s < NO_SERVOS; s++) {
+      myservos_angles[s] = 0;
+    }
 }
 
 
@@ -69,12 +79,7 @@ void mirror_set_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_se
   }
 }
 void mirror_set_angle(int mirror, int a, int angle, bool log_serial = true) {
-  if ((angle >= SERVO_ANGLE_MIN) || (angle <= SERVO_ANGLE_MAX)) {
-    int s = get_servo(mirror, a);
-    myservos_angles[s] = angle;
-    servo_controller.setPWM(s, 0, angle_2_pulse_width(angle));
-
-  }
+  _activate_servo(get_servo(mirror, a), angle);
   if (log_serial) {
     mirror_serial_print_angles();
   }
@@ -89,12 +94,9 @@ void mirror_add_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_se
   }
 }
 void mirror_add_angle(int mirror, int a, int angle, bool log_serial = true) {
-  int s = get_servo(a, angle);
+  int s = get_servo(mirror, a);
   int new_angle = myservos_angles[s] + angle;
-  if ((new_angle >= SERVO_ANGLE_MIN) || (new_angle <= SERVO_ANGLE_MAX)) {
-    myservos_angles[s] = angle;
-    servo_controller.setPWM(s, 0, angle_2_pulse_width(angle));
-  }
+  _activate_servo(s, new_angle);
   if (log_serial) {
     mirror_serial_print_angles();
   }
