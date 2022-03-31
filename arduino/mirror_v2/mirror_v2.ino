@@ -16,26 +16,26 @@ void serial_loop() {
         Serial.end();  //clears the serial monitor  if used
         resetFunc();
         delay(1000);
+    } else if (ser_command.startsWith("a")) {
+        string_read_ints(ser_command, ser_data);
+        mirror_set_angle(ser_data[0], 0, ser_data[1]);
+    } else if (ser_command.startsWith("b")){
+        string_read_ints(ser_command, ser_data);
+        mirror_set_angle(ser_data[0], 1, ser_data[1]);
+    } else if (ser_command.startsWith("c")){
+        string_read_ints(ser_command, ser_data);
+        mirror_set_angles(ser_data[0], ser_data+1);
+    } else if (ser_command.startsWith("A")) {
+        string_read_ints(ser_command, ser_data);
+        mirror_add_angle(ser_data[0], 0, ser_data[1]);
+    } else if (ser_command.startsWith("B")) {
+        string_read_ints(ser_command, ser_data);
+        mirror_add_angle(ser_data[0], 1, ser_data[1]);
+    } else if (ser_command.startsWith("C")){
+        string_read_ints(ser_command, ser_data);
+        mirror_add_angles(ser_data[0], ser_data+1);
     } else if (ser_command.startsWith("m")) {
         selected_mirror = string_read_int(ser_command);
-    } else if (ser_command.startsWith("a")) {
-        ser_data[0]= string_read_int(ser_command);
-        mirror_set_angle(selected_mirror, 0, ser_data[0]);
-    } else if (ser_command.startsWith("b")){
-        ser_data[0] = string_read_int(ser_command);
-        mirror_set_angle(selected_mirror, 1, ser_data[0]);
-    } else if (ser_command.startsWith("c")){
-        string_read_int2(ser_command, ser_data);
-        mirror_set_angles(selected_mirror, ser_data);
-    } else if (ser_command.startsWith("A")) {
-        ser_data[0] = string_read_int(ser_command);
-        mirror_add_angle(selected_mirror, 0, ser_data[0]);
-    } else if (ser_command.startsWith("B")) {
-        ser_data[0] = string_read_int(ser_command);
-        mirror_add_angle(selected_mirror, 1, ser_data[0]);
-    } else if (ser_command.startsWith("C")){
-        string_read_int2(ser_command,ser_data);
-        mirror_add_angles(selected_mirror, ser_data);
     } else if (ser_command.startsWith("1")) {
         mirror_set_angle(selected_mirror, 0, -40);
     } else if (ser_command.startsWith("2")) {
@@ -64,28 +64,33 @@ void serial_loop() {
         mirror_add_angle(selected_mirror, 1, 5);
     } else if (ser_command.startsWith("P")) {
         mirror_add_angle(selected_mirror, 1, -5);
+    } else if (ser_command.startsWith("km")) {
+        string_read_ints(ser_command, ser_data);
+        mirror_serial_print_angles(ser_data[0]);
     } else if (ser_command.startsWith("kp")) {
-        mirror_serial_print_angles();
+        mirror_serial_print_all_angles();
     } else {         
       Serial.println("unknown command " + String(ser_command));
 
     
 //        Serial.println("commands: ");
-//        Serial.println(" Select Servo: ");
-//        Serial.println("  m,1 : select mirror 1");
 //        Serial.println(" Absolutes: ");
-//        Serial.println("  a,10 : set the servo 1 to 80 degrees");
-//        Serial.println("  b,10 : set the servo 2 to 80 degrees");
-//        Serial.println("  c,-10, 10: set the servo 1,2 to -10, 10 degrees");
+//        Serial.println("  a,0,10 : set for mirror 0 the servo 1 to 10 degrees");
+//        Serial.println("  b,1,10 : set for mirror 1 the servo 2 to 10 degrees");
+//        Serial.println("  c,2,-10, 10: set for mirror 2 servos 1,2 to -10, 10 degrees");
 //        Serial.println(" Deltas: ");
-//        Serial.println("  A,10 : add the servo 1 with delta 10 degrees");
-//        Serial.println("  B,-10: add the servo 1 with delta -10 degrees");
-//        Serial.println("  C,10,-10: add the servo 1,2 with delta 10,-10 degrees");
+//        Serial.println("  A,0,10 : add for mirror 0 the servo 1 with delta 10 degrees");
+//        Serial.println("  B,1,-10: add for mirror 1 the servo 1 with delta -10 degrees");
+//        Serial.println("  C,2,10,-10: add for mirror 2 the servos 1,2 with delta 10,-10 degrees");
+//        Serial.println(" Step Moving: ");
+//        Serial.println("  m 1  : select mirror 1 for step moving:");
 //        Serial.println("  i - p: left - right 1 step");
 //        Serial.println("  o - l: up   - down 1 step");
 //        Serial.println("  I - P: left - right 5 steps");
 //        Serial.println("  O - L: up   - down 5 steps");
+//        Serial.println("  1,2,3,4,5,6: set selected mirror/servo to -40,0,40 degrees");
 //        Serial.println(" Logging");
+//        Serial.println("  km   : log mirror position ");
 //        Serial.println("  kp   : log position (relative to zero angle)");
 //        Serial.println(" Other");
 //        Serial.println("  R    : restart micro controller");

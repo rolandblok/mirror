@@ -22,46 +22,43 @@ class MyMirrorSerial:
             print("serial connected : {}".format(self.ser.readline().decode()))
             self.serial_connected = True
 
-    def serial_write_and_read(self, ser_com):
-        if (self.serial_connected):
+    # ==================
+    # internal 
+    def _serial_write(self, ser_com):
+        if self.serial_connected:
             self.ser.reset_input_buffer()
             self.ser.write("{}\n".format(ser_com).encode())
             self.ser.flush()
+            return True
+        else :
+            return False
+
+    def _serial_write_and_read(self, ser_com):
+        if self._serial_write(ser_com):
             return self.ser.readline().decode()
         else:
             return ""
 
-    def read_pos(self):
+    # ==================
+    # externals
+    def read_pos(self, mirror):
         mir_pos = [0,0]
-        if (self.serial_connected):
-            self.ser.reset_input_buffer()
-            self.ser.write(("kp\n".encode()))
-            mir_pos = self.ser.readline().decode().split(',')
-            mir_pos = [int(mp) for mp in mir_pos]
+        ser_com = "km,{}\n".format(mirror)
+        mir_pos = self._serial_write_and_read(ser_com).split(',')
+        mir_pos = [int(mp) for mp in mir_pos]
         return mir_pos
 
-    def serial_move(self, point):
-        if (self.serial_connected):
-            if (self.swap_XY):
-                point[Y], point[X] = point[X], point[Y]
-            angles = self.serial_write_and_read("c,{},{}".format(point[X], point[Y]))
-            if self.debug_on:
-                print("{}".format(angles))
-        else:
-            print("serial not connected")
+    def serial_move(self, mirror, point):
+        if (self.swap_XY):
+            point[Y], point[X] = point[X], point[Y]
+        self._serial_write_and_read("c,{},{},{}".format(mirror,point[X], point[Y]))
 
-    def serial_delta_move(self, delta_x, delta_y):
-        if (self.serial_connected):
-            delta_x = round(delta_x)
-            delta_y = round(delta_y)
-            if (self.swap_XY):
-                delta_y, delta_x = delta_x, delta_y
-            angles = self.serial_write_and_read("C,{},{}".format(delta_x, delta_y))
-            if self.debug_on:
-                print("{}".format(angles))
-        else:
-            print("serial not connected")
-
+    def serial_delta_move(self, mirror, delta_x, delta_y):
+        delta_x = round(delta_x)
+        delta_y = round(delta_y)
+        if (self.swap_XY):
+            delta_y, delta_x = delta_x, delta_y
+        self._serial_write_and_read("C,{},{},{}".format(mirror,delta_x, delta_y))
 
     def close(self):
         self.ser.close()

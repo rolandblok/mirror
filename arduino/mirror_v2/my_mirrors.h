@@ -5,10 +5,6 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 
-//#define SERVO_ANGLE_MAX  ( 40)
-//#define SERVO_ANGLE_MIN  (-40)
-#define SERVO_ANGLE_MAX  ( 90)
-#define SERVO_ANGLE_MIN  (-90)
 
 
 #define NO_MIRRORS (8)
@@ -39,7 +35,8 @@ void mirror_add_angle(int mirror, int a, int angle, bool log_serial=true);
 // ============
 // serial logging
 // ============
-void mirror_serial_print_angles() ;
+void mirror_serial_print_angles(int mirror) ;
+void mirror_serial_print_all_angles() ;
 
 
 

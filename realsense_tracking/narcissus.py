@@ -46,6 +46,12 @@ STREAM_HEIGHT=480
 
 MIRROR_ARUCO_RADIUS = 0.15 # meters
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
+CALIBRATION_MIRROR = 0
+NO_MIRRORS = 8
+#    2 1
+# 7 3 C 0 6
+#    4 5
+
 
 class FollowMode(Enum):
     DISABLE = 0
@@ -326,11 +332,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                     d_angle_y = math.atan(mirror_center_a17_pos[Y] / depth_a17[Z]) * 360/math.pi 
 
                     if round(d_angle_x) == 0 and round(d_angle_y) == 0 :
-                        angle_pos = my_serial.read_pos()
+                        angle_pos = my_serial.read_pos(CALIBRATION_MIRROR)
                         calib_results.append([depth_a17, angle_pos])
                         print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
-                        my_serial.serial_delta_move(d_angle_x,-d_angle_y)
+                        my_serial.serial_delta_move(CALIBRATION_MIRROR, d_angle_x,-d_angle_y)
 
 
 
@@ -349,7 +355,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 angles_deg = [180 * a / math.pi for a in angles ]
                 angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 
-                my_serial.serial_move(angles_deg)
+                my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 angles0 = my_mirror_calib.eval(face_3Dpoints[0])
@@ -359,11 +365,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
 
                 angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
-                my_serial.serial_move(angles_deg_av)
+                my_serial.serial_move(CALIBRATION_MIRROR, angles_deg_av)
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
             angles_deg = [0,0]
-            my_serial.serial_move(angles_deg)
+            my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
 
 
     # ==================
@@ -376,33 +382,33 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         print("quiting")
         break
     elif (key == ord('o')):
-        print("{}".format(my_serial.serial_write_and_read("o")))
+        print("{}".format(my_serial._serial_write_and_read("o")))
     elif (key == ord('i')):
-        print("{}".format(my_serial.serial_write_and_read("i")))
+        print("{}".format(my_serial._serial_write_and_read("i")))
     elif (key == ord('p')):
-        print("{}".format(my_serial.serial_write_and_read("p")))
+        print("{}".format(my_serial._serial_write_and_read("p")))
     elif (key == ord('l')):
-        print("{}".format(my_serial.serial_write_and_read("l")))
+        print("{}".format(my_serial._serial_write_and_read("l")))
     elif (key == ord('O')):
-        print("{}".format(my_serial.serial_write_and_read("O")))
+        print("{}".format(my_serial._serial_write_and_read("O")))
     elif (key == ord('I')):
-        print("{}".format(my_serial.serial_write_and_read("I")))
+        print("{}".format(my_serial._serial_write_and_read("I")))
     elif (key == ord('P')):
-        print("{}".format(my_serial.serial_write_and_read("P")))
+        print("{}".format(my_serial._serial_write_and_read("P")))
     elif (key == ord('L')):
-        print("{}".format(my_serial.serial_write_and_read("L")))
+        print("{}".format(my_serial._serial_write_and_read("L")))
     elif (key == ord('1')):
-        print("{}".format(my_serial.serial_write_and_read("1")))
+        print("{}".format(my_serial._serial_write_and_read("1")))
     elif (key == ord('2')):
-        print("{}".format(my_serial.serial_write_and_read("2")))      
+        print("{}".format(my_serial._serial_write_and_read("2")))      
     elif (key == ord('3')):
-        print("{}".format(my_serial.serial_write_and_read("3")))
+        print("{}".format(my_serial._serial_write_and_read("3")))
     elif (key == ord('4')):
-        print("{}".format(my_serial.serial_write_and_read("4")))
+        print("{}".format(my_serial._serial_write_and_read("4")))
     elif (key == ord('5')):
-        print("{}".format(my_serial.serial_write_and_read("5")))  
+        print("{}".format(my_serial._serial_write_and_read("5")))  
     elif (key == ord('6')):
-        print("{}".format(my_serial.serial_write_and_read("6")))
+        print("{}".format(my_serial._serial_write_and_read("6")))
 
     elif (key == ord('c')):
         if follow_mode == FollowMode.CALIBRATE:  # dump the data

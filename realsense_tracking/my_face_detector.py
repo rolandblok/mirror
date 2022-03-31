@@ -63,7 +63,7 @@ class MyFaceDetector:
             faces = self.mp_face_detection.process(image_RGB)
             if faces.detections:
                 for face in faces.detections:  # dir(mp.solutions.face_detection.FaceKeyPoint)
-                    self.mp_drawing.draw_detection(color_image_draw, face)
+                    # self.mp_drawing.draw_detection(color_image_draw, face)
                     r_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.RIGHT_EYE))
                     r_eye = (r_eye.x*color_colormap_dim[1], r_eye.y*color_colormap_dim[0])
                     l_eye = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.LEFT_EYE))
