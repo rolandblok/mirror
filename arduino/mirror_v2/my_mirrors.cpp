@@ -33,7 +33,6 @@ int actuate_servo(int s, int angle) {
   if ((angle >= SERVO_ANGLE_MIN) && (angle <= SERVO_ANGLE_MAX)) {
     int pulse_width = map(angle, -90, 90, SERVOMIN, SERVOMAX);
     myservos_angles[s] = angle;
-    Serial.println(String(angle) + " " + String(pulse_width));
     servo_controller.setPWM(s, 0, pulse_width);
     return true;
   } else {
