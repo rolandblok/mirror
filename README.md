@@ -1,6 +1,8 @@
 # mirror
 Narcissus
+
 Moving a hex mirror to look you in the face.
+
 Moving a hex mirror to make you smile at a friend.
 
 
