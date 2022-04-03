@@ -18,3 +18,6 @@ int string_read_ints(String s, int *ints) {
       }
   }
 }
+
+int   _sign(int   x) {return ((x) > 0 ? 1 : -1);}
+float _sign(float x) {return ((x) > 0 ? 1 : -1);}

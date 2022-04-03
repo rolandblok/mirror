@@ -2,10 +2,6 @@
 #define MY_MIRROR_AA
 
 #include <Arduino.h>
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-
-
 
 #define NO_MIRRORS (8)
 #define NO_ANGLES_PER_MIRROR (2)

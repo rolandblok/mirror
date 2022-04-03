@@ -1,23 +1,11 @@
 
 #include "my_mirrors.h"
-
-//https://rootsaid.com/pca9685-servo-driver/
-
-#define SERVOMIN  (150) // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  (600) // This is the 'maximum' pulse length count (out of 4096)
-#define USMIN  (600) // This is the rounded 'minimum' microsecond length based on the minimum pulse of 150
-#define USMAX  (2400) // This is the rounded 'maximum' microsecond length based on the maximum pulse of 600
-#define SERVO_FREQ (50) // Analog servos run at ~50 Hz updates
-
+#include "my_smooth_servo.h"
 
 #define SERVO_ANGLE_MIN  (-40)
 #define SERVO_ANGLE_MAX  ( 40)
-#define NO_SERVOS (NO_MIRRORS*NO_ANGLES_PER_MIRROR)
 
-
-Adafruit_PWMServoDriver servo_controller = Adafruit_PWMServoDriver(0x40);
-
-int   myservos_angles[NO_SERVOS];
+MySmoothServo sm_servo = MySmoothServo();
 
 // ======================
 // HELPERS
@@ -31,9 +19,7 @@ int   get_servo(int mirror, int angle) {
 int actuate_servo(int s, int angle) {
 
   if ((angle >= SERVO_ANGLE_MIN) && (angle <= SERVO_ANGLE_MAX)) {
-    int pulse_width = map(angle, -90, 90, SERVOMIN, SERVOMAX);
-    myservos_angles[s] = angle;
-    servo_controller.setPWM(s, 0, pulse_width);
+    sm_servo.set_target(s, angle);
     return true;
   } else {
     return false;
@@ -45,18 +31,16 @@ int actuate_servo(int s, int angle) {
 // setup
 // ============================
 void mirror_setup(void) {
-    servo_controller.begin();
-    servo_controller.setOscillatorFrequency(27000000);
-    servo_controller.setPWMFreq(SERVO_FREQ);
+  sm_servo.setup();
+  
 }
-
 
 
 // ============================
 // loop
 // ============================
 void mirror_loop(void) {
-
+  sm_servo.loop();
 
 }
 
@@ -70,7 +54,7 @@ void mirror_get_angles(int mirror, int angles_ret[NO_ANGLES_PER_MIRROR]) {
   }
 }
 int mirror_get_angle(int mirror, int a) {
-  return myservos_angles[get_servo(mirror, a)];
+  return sm_servo.get_target(get_servo(mirror, a));
 }
 
 
@@ -84,7 +68,7 @@ void mirror_set_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_se
 }
 void mirror_set_angle(int mirror, int a, int angle, bool log_serial = true) {
   int s = get_servo(mirror, a);
-  actuate_servo(s, angle);
+  sm_servo.set_target(s, angle);
   if (log_serial) {
     mirror_serial_print_angles(mirror);
   }
@@ -101,7 +85,7 @@ void mirror_add_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_se
 }
 void mirror_add_angle(int mirror, int a, int angle, bool log_serial = true) {
   int s = get_servo(mirror, a);
-  actuate_servo(s, myservos_angles[s] + angle);
+  sm_servo.add_target(s, angle);
   if (log_serial) {
     mirror_serial_print_angles(mirror);
   }
@@ -113,11 +97,11 @@ void mirror_add_angle(int mirror, int a, int angle, bool log_serial = true) {
 // ============
 void mirror_serial_print_angles(int mirror) {
   int s = get_servo(mirror, 0);
-  Serial.println(String(mirror) + "," + String(myservos_angles[s]) + "," + String(myservos_angles[s + 1]));
+  Serial.println(String(mirror) + "," + String(sm_servo.get_target(s)) + "," + String(sm_servo.get_target(s + 1)));
 }
 void mirror_serial_print_all_angles() {
   for (int m = 0; m < NO_MIRRORS; m ++) {
     int s = get_servo(m, 0);
-    Serial.println(String(m) + "," + String(myservos_angles[s]) + "," + String(myservos_angles[s + 1]));
+    Serial.println(String(m) + "," + String(sm_servo.get_target(s)) + "," + String(sm_servo.get_target(s + 1)));
   }
 }
