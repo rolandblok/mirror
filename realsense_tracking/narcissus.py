@@ -18,7 +18,8 @@ import json
 import time, math, os.path
 import pyrealsense2 as rs
 import numpy as np
-import matplotlib.pyplot as plt
+
+
 # from mpl_toolkits.mplot3d import Axes3D
 
 import cv2
@@ -77,24 +78,18 @@ if os.path.exists(file_calib_json) :
             angles.append( (calib_point[1][1]) * math.pi / 180)
             my_mirror_calib.add_data(calib_point[0], angles )
 
-        if False:  # debug plot input data
-            if len(calib_results) > 0:
-                fig = plt.figure()
-                ax = fig.add_subplot(111, projection='3d')
-                for calib_point in calib_results:
-                    ax.scatter(calib_point[0][X], calib_point[0][Y], calib_point[0][Z])
-                ax.set_xlabel('X')
-                ax.set_ylabel('Y')
-                ax.set_zlabel('Z')
-                plt.show() 
-
         res = my_mirror_calib.solve()
+
+        if True:  # debug plot input data
+            my_mirror_calib.plotResiduals()
+       
         if (res):
             my_mirror_calib.printCalibMatrix()
             my_mirror_calib.printResiduals()
             my_mirror_calib.printResidualsStatistics()
         else : 
             print('fit failed')
+        quit()
 else :
     calib_results = []
     MyMirrorCalib = 0

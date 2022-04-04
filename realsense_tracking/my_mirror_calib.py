@@ -3,7 +3,7 @@ import math
 from scipy.optimize import curve_fit
 import statistics
 from my_utils import *
-
+import matplotlib.pyplot as plt
 
 
 
@@ -66,6 +66,52 @@ class MyMirrorCalib:
         print("    {:6.3f} {:6.3f} {:6.3f}  ".format(self._P[2], 1,          self._P[3]))
         print("    {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[4], self._P[5], self._P[6]))
         print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[7], self._P[8], self._P[9]))
+
+
+    def plotResiduals(self, in_degrees=True):
+        degrees = 1
+        if in_degrees:
+            degrees = 180 / math.pi
+
+        x = []  
+        y = []
+        z = []
+        dya = []
+        dyb = []
+
+        for i in range(len(self.x_data)):
+            x.append( self.x_data[i][X] )
+            y.append( self.x_data[i][Y] ) 
+            z.append( self.x_data[i][Z] ) 
+            ym = self.eval(self.x_data[i])
+            ym = np.multiply(ym, degrees)
+            dya.append( degrees*self.y_data[2*i+0] - ym[0] )
+            dyb.append( degrees*self.y_data[2*i+1] - ym[1] ) 
+
+        # fig, (axa,axb) = plt.subplots(nrows=2, projection='3d')
+        fig = plt.figure(1, figsize=(20,10))
+        axa = fig.add_subplot(121, projection='3d')
+   
+        sca = axa.scatter(x, y, z, c=dya, cmap='rainbow')
+        axa.set_title("a")
+        plt.colorbar(sca)
+
+        axa.set_xlabel('X')
+        axa.set_ylabel('Y')
+        axa.set_zlabel('Z')
+
+        # fig2 = plt.figure(2)
+        axb = fig.add_subplot(122, projection='3d')
+        scb = axb.scatter(x, y, z, c=dyb,cmap='rainbow')
+        axb.set_title("b")
+        plt.colorbar(scb)
+
+
+        axb.set_xlabel('X')
+        axb.set_ylabel('Y')
+        axb.set_zlabel('Z')
+        plt.show() 
+
 
     def printResiduals(self, in_degrees=True):
         degrees = 1
