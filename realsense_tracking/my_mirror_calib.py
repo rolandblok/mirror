@@ -48,13 +48,20 @@ class MyMirrorCalib:
         else:
             print("illigal input : {}".format(angles) )
 
-    def solve(self):
+    def solve(self, remove_outliers = True):
         if(len(self.x_data) > 3) :
-            self._P = curve_fit(myProjection, self.x_data, self.y_data, self._P0)[0]
-            self.solved = True
+            self._solve()
+            if (remove_outliers):
+                self.removeOutliers()
+                self._solve()
             return True
         else:
             return False
+
+    def _solve(self):
+        self._P = curve_fit(myProjection, self.x_data, self.y_data, self._P0)[0]
+        self.solved = True
+        self._calcFitStats()
 
     def eval(self, x) :
         p = self._P
@@ -130,29 +137,51 @@ class MyMirrorCalib:
             dyb = ( yb - ym[1] )
             print(" {:7.3f} {:7.3f} {:7.3f} : {:7.3f} {:7.3f} : {:7.3f} {:7.3f} : {:7.3f} {:7.3f} ".format(x,y,z, ya,yb ,ym[0],ym[1], dya, dyb ))
 
-
-    def printResidualsStatistics(self, in_degrees=True):
-        degrees = 1
-        if in_degrees:
-            degrees = 180 / math.pi
+    def _calcFitStats(self) :
         dya = []
         dyb = []
         for i in range(len(self.x_data)):
             ym = self.eval(self.x_data[i])
             dya.append( self.y_data[2*i+0] - ym[0] )
             dyb.append( self.y_data[2*i+1] - ym[1] )
-        stda = degrees * statistics.stdev(dya)
-        stdb = degrees * statistics.stdev(dyb)
-        dya2 = np.multiply(np.abs(dya), degrees)
-        dyb2 = np.multiply(np.abs(dyb), degrees)
-        maxa = max(dya2)
-        maxb = max(dyb2)
-        mina = min(dya2)
-        minb = min(dyb2)
+        self.stda = statistics.stdev(dya)
+        self.stdb = statistics.stdev(dyb)
+        dya2 = np.abs(dya)
+        dyb2 = np.abs(dyb)
+        self.maxa = max(dya2)
+        self.maxb = max(dyb2)
+        self.mina = min(dya2)
+        self.minb = min(dyb2)
 
-        print("std = {:6.3f}  {:6.3f} ".format(stda, stdb))
-        print("min = {:6.3f}  {:6.3f} ".format(mina, minb))
-        print("max = {:6.3f}  {:6.3f} ".format(maxa, maxb))
+
+
+    def printResidualsStatistics(self, in_degrees=True):
+        degrees = 1
+        if in_degrees:
+            degrees = 180 / math.pi
+
+        print("std = {:6.3f}  {:6.3f} ".format(self.stda*degrees, self.stdb*degrees))
+        print("min = {:6.3f}  {:6.3f} ".format(self.mina*degrees, self.minb*degrees))
+        print("max = {:6.3f}  {:6.3f} ".format(self.maxa*degrees, self.maxb*degrees))
+
+    def removeOutliers(self) :
+        new_x_data = []
+        new_y_data = []
+        no_items_removed = 0        
+        for i in range(len(self.x_data)):
+            ym = self.eval(self.x_data[i])
+            dya = self.y_data[2*i+0] - ym[0] 
+            dyb = self.y_data[2*i+1] - ym[1] 
+            if (np.abs(dya) < 1.5*self.stda) and (np.abs(dyb) < 1.5*self.stdb) :
+                new_x_data.append(self.x_data[i])
+                new_y_data.append(self.y_data[2*i+0])
+                new_y_data.append(self.y_data[2*i+1])
+            else:
+                no_items_removed += 1
+
+
+        self.x_data = new_x_data
+        self.y_data = new_y_data
 
 
 

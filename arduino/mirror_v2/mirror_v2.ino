@@ -11,29 +11,29 @@ void serial_loop() {
   // serial business
   if (Serial.available() > 0) {
     String ser_command = Serial.readStringUntil(10);
-    int ser_data[3];
+    float ser_data[3];
     if (ser_command.startsWith("R")) {   // Restart
         Serial.end();  //clears the serial monitor  if used
         resetFunc();
         delay(1000);
     } else if (ser_command.startsWith("a")) {
-        string_read_ints(ser_command, ser_data);
-        mirror_set_angle(ser_data[0], 0, ser_data[1]);
+        string_read_floats(ser_command, ser_data);
+        mirror_set_angle((int)(ser_data[0]), 0, ser_data[1]);
     } else if (ser_command.startsWith("b")){
-        string_read_ints(ser_command, ser_data);
-        mirror_set_angle(ser_data[0], 1, ser_data[1]);
+        string_read_floats(ser_command, ser_data);
+        mirror_set_angle((int)(ser_data[0]), 1, ser_data[1]);
     } else if (ser_command.startsWith("c")){
-        string_read_ints(ser_command, ser_data);
-        mirror_set_angles(ser_data[0], ser_data+1);
+        string_read_floats(ser_command, ser_data);
+        mirror_set_angles((int)(ser_data[0]), ser_data+1);
     } else if (ser_command.startsWith("A")) {
-        string_read_ints(ser_command, ser_data);
-        mirror_add_angle(ser_data[0], 0, ser_data[1]);
+        string_read_floats(ser_command, ser_data);
+        mirror_add_angle((int)(ser_data[0]), 0, ser_data[1]);
     } else if (ser_command.startsWith("B")) {
-        string_read_ints(ser_command, ser_data);
-        mirror_add_angle(ser_data[0], 1, ser_data[1]);
+        string_read_floats(ser_command, ser_data);
+        mirror_add_angle((int)(ser_data[0]), 1, ser_data[1]);
     } else if (ser_command.startsWith("C")){
-        string_read_ints(ser_command, ser_data);
-        mirror_add_angles(ser_data[0], ser_data+1);
+        string_read_floats(ser_command, ser_data);
+        mirror_add_angles((int)(ser_data[0]), ser_data+1);
     } else if (ser_command.startsWith("m")) {
         selected_mirror = string_read_int(ser_command);
     } else if (ser_command.startsWith("1")) {
@@ -65,10 +65,14 @@ void serial_loop() {
     } else if (ser_command.startsWith("P")) {
         mirror_add_angle(selected_mirror, 1, -5);
     } else if (ser_command.startsWith("km")) {
-        string_read_ints(ser_command, ser_data);
-        mirror_serial_print_angles(ser_data[0]);
+        int mirror = string_read_int(ser_command);
+        mirror_serial_print_angles(mirror);
     } else if (ser_command.startsWith("kp")) {
         mirror_serial_print_all_angles();
+    } else if (ser_command.startsWith("son")) {
+        mirror_smooth(true);
+    } else if (ser_command.startsWith("soff")) {
+        mirror_smooth(false);
     } else {         
       Serial.println("unknown command " + String(ser_command));
 
@@ -90,10 +94,12 @@ void serial_loop() {
 //        Serial.println("  O - L: up   - down 5 steps");
 //        Serial.println("  1,2,3,4,5,6: set selected mirror/servo to -40,0,40 degrees");
 //        Serial.println(" Logging");
-//        Serial.println("  km   : log mirror position ");
+//        Serial.println("  km,1 : log for mirror 1 the position ");
 //        Serial.println("  kp   : log position (relative to zero angle)");
 //        Serial.println(" Other");
 //        Serial.println("  R    : restart micro controller");
+//        Serial.println("  son  : smooth move on");
+//        Serial.println("  soff : smooth move off");
 //        Serial.flush();
     }
   } 

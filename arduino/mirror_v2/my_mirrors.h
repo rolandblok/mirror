@@ -15,18 +15,19 @@
 
 void mirror_setup(void);
 void mirror_loop(void);
+void mirror_smooth(bool enable);
 
 // ============================
 // position getters and setters
 // ============================
-void mirror_get_angles(int mirror, int angles_ret[NO_ANGLES_PER_MIRROR]) ;
-int  mirror_get_angle(int mirror, int a);
+void  mirror_get_angles(int mirror, float angles_ret[NO_ANGLES_PER_MIRROR]) ;
+float mirror_get_angle(int mirror, int a);
 
-void mirror_set_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_serial=true);
-void mirror_set_angle(int mirror, int a, int angle, bool log_serial=true);
+void mirror_set_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial=true);
+void mirror_set_angle(int mirror, int a, float angle, bool log_serial=true);
 
-void mirror_add_angles(int mirror, int angles[NO_ANGLES_PER_MIRROR], bool log_serial=true);
-void mirror_add_angle(int mirror, int a, int angle, bool log_serial=true);
+void mirror_add_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial=true);
+void mirror_add_angle(int mirror, int a, float angle, bool log_serial=true);
 
 // ============
 // serial logging

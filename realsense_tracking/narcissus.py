@@ -78,18 +78,17 @@ if os.path.exists(file_calib_json) :
             angles.append( (calib_point[1][1]) * math.pi / 180)
             my_mirror_calib.add_data(calib_point[0], angles )
 
-        res = my_mirror_calib.solve()
-
-        if True:  # debug plot input data
+        res = my_mirror_calib.solve(remove_outliers = True)
+        if False:  # debug plot input data
             my_mirror_calib.plotResiduals()
        
         if (res):
             my_mirror_calib.printCalibMatrix()
-            my_mirror_calib.printResiduals()
+            # my_mirror_calib.printResiduals()
             my_mirror_calib.printResidualsStatistics()
         else : 
             print('fit failed')
-        quit()
+        # quit()
 else :
     calib_results = []
     MyMirrorCalib = 0
@@ -230,16 +229,17 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            if not follow_mode == FollowMode.CALIBRATE:
+            if follow_mode != FollowMode.CALIBRATE:
                 eye_centers = my_face_detector.detect(color_image, color_image_disp)
                 for eye_center in eye_centers:
                     # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
                     dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
-                    face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
-                    face_3Dpoints.append(face_3Dpoint)
-                    cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
-                                eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-                    cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+                    if dist > 0:
+                        face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
+                        face_3Dpoints.append(face_3Dpoint)
+                        cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
+                                    eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                        cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
 
             if (ENABLE_ARUCO_DETECTION):
@@ -281,20 +281,20 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         # find and orden all arucos
         for fone_aruco in fone_arucos:
             id = fone_aruco['id']
-            if id == 0:
-                # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
-            elif id == 1:
-                hex_aruco_2_pixel_projection.add_measurement((-MIRROR_ARUCO_RADIUS, 0), fone_aruco['pos'])
-            elif id == 2:
-                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,+0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
             # if id == 0:
             #     # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-            #     hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            # if id == 1:
-            #     hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            # if id == 2:
-            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
+            # elif id == 1:
+            #     hex_aruco_2_pixel_projection.add_measurement((-MIRROR_ARUCO_RADIUS, 0), fone_aruco['pos'])
+            # elif id == 2:
+            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,+0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
+            if id == 0:
+                # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
+                hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            if id == 1:
+                hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
+            if id == 2:
+                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
             elif id == 17:
                 mirror_fone_a17_pix_pos = fone_aruco['pos'] 
                 mirror_fone_a17_pix_pos_found = True
@@ -307,7 +307,9 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0.10, 0   )))
             y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,    0.10)))
             cv2.line(phone_frame_disp, hex_mirror_middle, x_ax, (255,0,255), 2)
+            cv2.putText(phone_frame_disp, "x", x_ax, cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255), thickness=2)
             cv2.line(phone_frame_disp, hex_mirror_middle, y_ax, (255,0,255), 2)
+            cv2.putText(phone_frame_disp, "y",y_ax, cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255), thickness=2)
 
 
         # adjust mirror pos for calibration loop
@@ -331,7 +333,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                         calib_results.append([depth_a17, angle_pos])
                         print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
-                        my_serial.serial_delta_move(CALIBRATION_MIRROR, d_angle_x,-d_angle_y)
+                        my_serial.serial_delta_move(CALIBRATION_MIRROR, -d_angle_x, -d_angle_y)
 
 
 
@@ -348,7 +350,8 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 angles = my_mirror_calib.eval(face_3Dpoints[0])
                 angles_deg = [180 * a / math.pi for a in angles ]
-                angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
+                # print(f"    {face_3Dpoints[0]=} {angles_deg=}")
+                # angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 
                 my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
@@ -359,7 +362,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 angles_deg1 = [180 * a / math.pi for a in angles1 ]
                 angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
 
-                angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
+                # angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 my_serial.serial_move(CALIBRATION_MIRROR, angles_deg_av)
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
@@ -410,13 +413,17 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             with open(file_calib_json, 'w') as calib_file:
                 json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
             follow_mode = FollowMode.DISABLE
+            my_serial.serial_mirror_smooth(True)
         else:
             follow_mode = FollowMode.CALIBRATE
+            my_serial.serial_mirror_smooth(False)
         print("caribation loop {}".format(follow_mode))
 
     elif (key == ord('s')) : 
         if follow_mode != FollowMode.CALIBRATE:
             follow_mode = FollowMode.DISABLE
+            angles_deg = [0,0]
+            my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         if follow_mode != FollowMode.CALIBRATE:

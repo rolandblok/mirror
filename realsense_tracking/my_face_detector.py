@@ -75,8 +75,8 @@ class MyFaceDetector:
                         ym = math.floor((r_eye[Y] + l_eye[Y])/2)
                         face_eyes.append((xm,ym))
                     else:  # use nose
-                        xm = math.floor(nose[X])
-                        ym = math.floor(nose[Y])
+                        xm = max(0, min(math.floor(nose[X]), color_image.shape[1]))
+                        ym = max(0, min(math.floor(nose[Y]), color_image.shape[0]))
                         face_eyes.append((xm,ym))
 
                     cv2.circle(color_image_draw, tuple2int(r_eye), 5, (255,255,0), 2)

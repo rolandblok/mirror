@@ -9,7 +9,7 @@ class MyMirrorSerial:
     def __init__(self, port, debug_on = False):
         self.serial_connected = True
         self.debug_on = debug_on
-        self.swap_XY = True
+        self.swap_XY = False
 
         if port != "":
             from serial.tools import list_ports
@@ -39,13 +39,16 @@ class MyMirrorSerial:
         else:
             return ""
 
+
     # ==================
     # externals
     def read_pos(self, mirror):
         mir_pos = [0,0]
         ser_com = "km,{}\n".format(mirror)
-        mir_pos = self._serial_write_and_read(ser_com).split(',')
-        mir_pos = [int(mp) for mp in mir_pos]
+        ser_ans = self._serial_write_and_read(ser_com)
+        # print("{}".format(ser_ans))
+        mir_pos = ser_ans.split(',')
+        mir_pos = (float(mir_pos[1]), float(mir_pos[2]))
         return mir_pos
 
     def serial_move(self, mirror, point):
@@ -54,11 +57,20 @@ class MyMirrorSerial:
         self._serial_write_and_read("c,{},{},{}".format(mirror,point[X], point[Y]))
 
     def serial_delta_move(self, mirror, delta_x, delta_y):
-        delta_x = round(delta_x)
-        delta_y = round(delta_y)
+        delta_x = delta_x
+        delta_y = delta_y
         if (self.swap_XY):
             delta_y, delta_x = delta_x, delta_y
-        self._serial_write_and_read("C,{},{},{}".format(mirror,delta_x, delta_y))
+        print("C,{},{:.2f},{:.2f}".format(mirror,delta_x, delta_y))
+        self._serial_write_and_read("C,{},{:.2f},{:.2f}".format(mirror,delta_x, delta_y))
+
+    def serial_mirror_smooth(self, enable) :
+        if enable:
+            self._serial_write("son")
+        else :
+            self._serial_write("soff")
+    
+
 
     def close(self):
         self.ser.close()
