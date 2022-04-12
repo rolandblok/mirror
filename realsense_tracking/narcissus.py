@@ -27,7 +27,7 @@ print("opencv version : " + cv2.__version__ )
 
 WERKPLAATS = True
 if WERKPLAATS:
-    COM_PORT = "COM8"
+    COM_PORT = "COM10"
     CAMERA_IP = "http://192.168.94.22:4747/video"
 else: 
     COM_PORT = "COM4"
@@ -47,7 +47,7 @@ STREAM_HEIGHT=480
 
 MIRROR_ARUCO_RADIUS = 0.15 # meters
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
-CALIBRATION_MIRROR = 0
+CALIBRATION_MIRROR = 1
 NO_MIRRORS = 8
 #    2 1
 # 7 3 C 0 6
@@ -79,7 +79,7 @@ if os.path.exists(file_calib_json) :
             my_mirror_calib.add_data(calib_point[0], angles )
 
         res = my_mirror_calib.solve(remove_outliers = True)
-        if False:  # debug plot input data
+        if True:  # debug plot input data
             my_mirror_calib.plotResiduals()
        
         if (res):
@@ -416,6 +416,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
             my_serial.serial_mirror_smooth(True)
         else:
             follow_mode = FollowMode.CALIBRATE
+            my_serial.serial_mirror_select(CALIBRATION_MIRROR)
             my_serial.serial_mirror_smooth(False)
         print("caribation loop {}".format(follow_mode))
 

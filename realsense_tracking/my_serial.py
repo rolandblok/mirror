@@ -70,6 +70,9 @@ class MyMirrorSerial:
         else :
             self._serial_write("soff")
     
+    def serial_mirror_select(self, mirror) :
+        self._serial_write(f"m,{mirror}")
+    
 
 
     def close(self):

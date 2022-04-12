@@ -7,14 +7,18 @@ import matplotlib.pyplot as plt
 
 
 
-#                         0    1    2   3     4    5    6    7    8   9   10  11  
+#                         0    1    2    3     4    5    6    7    8   9   10  11  
 def myProjection(x_coor, p12, p13, p21, p23, p31, p32, p33,  tx,  ty,  tz):
+# def myProjection(x_coor, tx,  ty,  tz):
     y_coors = []
 
     for x,y,z in x_coor:
+        # xx = (tx + 1*x + 1 * y + 1 * z)
+        # yy = (ty + 1*x + 1 * y + 1 * z)
+        # zz = (tz + 1*x + 1 * y + 1 * z)
         xx = (tx + 1*x   + p12 * y + p13 * z)
         yy = (ty + p21*x + 1 * y   + p23 * z)
-        zz = (tz + p31*x + p32 * y + p33 * z)
+        zz = (tz + p31*x + p32 * y + p33 * z)        
         alpha = math.atan(xx/zz)
         beta  = math.atan(yy/zz)
         y_coors.append(alpha)
@@ -33,6 +37,7 @@ class MyMirrorCalib:
                      0.038,          0.037 ,
                     -0.225, -0.081,  0.363 ,
                      0.282, -0.154, -0.064    ]
+        # self._P0 = [0.2, 0.2, 0]
         self._T = []  # tx, ty, tz
         self.solved = False
     
@@ -66,13 +71,15 @@ class MyMirrorCalib:
     def eval(self, x) :
         p = self._P
         x = [x]
+        # return myProjection(x, p[0], p[1], p[2])
         return myProjection(x, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9])
 
     def printCalibMatrix(self):
-        print("M [ {:6.3f} {:6.3f} {:6.3f}  ".format(1,          self._P[0], self._P[1]))
-        print("    {:6.3f} {:6.3f} {:6.3f}  ".format(self._P[2], 1,          self._P[3]))
-        print("    {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[4], self._P[5], self._P[6]))
-        print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[7], self._P[8], self._P[9]))
+
+        print("M [ {:6.3f} {:6.3f} {:6.3f}  ".format(1,         1,         1))
+        print("    {:6.3f} {:6.3f} {:6.3f}  ".format(1,         1,         1))
+        print("    {:6.3f} {:6.3f} {:6.3f} ]".format(1,         1,         1))
+        print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[0], self._P[1], self._P[2]))
 
 
     def plotResiduals(self, in_degrees=True):
