@@ -6,9 +6,18 @@ from my_utils import *
 import matplotlib.pyplot as plt
 
 
+def add_defaults(**kwargs):
+    defaults = {'p11':1, 'p12':0, 'p13':0,
+                'p21':0, 'p22':1, 'p23':0,
+                'p31':0, 'p32':0, 'p33':1,
+                'tx':0, 'ty':0, 'tz':0,
+                's_alpha':1, 's_beta':1,
+                'alpha_0':0, 'beta_0':0}
+    defaults.update(kwargs)
+    return defaults
 
-#                         0    1    2    3     4    5    6    7    8   9   10  11  
-def myProjection(x_coor, p12, p13, p21, p23, p31, p32, p33,  tx,  ty,  tz):
+
+def myProjection(x_coor, p11=1, p12=0, p13=0, p21=0, p22=1, p23=0, p31=0, p32=0, p33=1,  tx=0,  ty=0,  tz=0, s_alpha=1, s_beta=1, alpha_0=0, beta_0=0):
 # def myProjection(x_coor, tx,  ty,  tz):
     y_coors = []
 
@@ -16,14 +25,25 @@ def myProjection(x_coor, p12, p13, p21, p23, p31, p32, p33,  tx,  ty,  tz):
         # xx = (tx + 1*x + 1 * y + 1 * z)
         # yy = (ty + 1*x + 1 * y + 1 * z)
         # zz = (tz + 1*x + 1 * y + 1 * z)
-        xx = (tx + 1*x   + p12 * y + p13 * z)
-        yy = (ty + p21*x + 1 * y   + p23 * z)
+        xx = (tx + p11*x   + p12 * y + p13 * z)
+        yy = (ty + p21*x + p22 * y   + p23 * z)
         zz = (tz + p31*x + p32 * y + p33 * z)        
-        alpha = math.atan(xx/zz)
-        beta  = math.atan(yy/zz)
+        alpha = alpha_0 + s_alpha * math.atan(xx/zz)
+        beta  = beta_0 + s_beta * math.atan(yy/zz)
         y_coors.append(alpha)
         y_coors.append(beta)
     return y_coors
+
+def printCalibMatrix(parameters):
+
+    print("M [ {:6.3f} {:6.3f} {:6.3f}  ".format(parameters['p11'], parameters['p12'], parameters['p13']))
+    print("    {:6.3f} {:6.3f} {:6.3f}  ".format(parameters['p21'], parameters['p22'], parameters['p23']))
+    print("    {:6.3f} {:6.3f} {:6.3f} ]".format(parameters['p31'], parameters['p32'], parameters['p33']))
+    print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(parameters['tx'], parameters['ty'], parameters['tz']))
+    print("S [ {:6.3f} {:6.3f} ]".format(parameters['s_alpha'], parameters['s_beta']))
+    print("0 [ {:6.3f} {:6.3f} ]".format(parameters['alpha_0'], parameters['beta_0']))
+
+
 
 
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
@@ -32,15 +52,12 @@ class MyMirrorCalib:
     def __init__(self):
         self.x_data = []
         self.y_data = []
-        self._P = []  # p11, p12, p13, p21, p22, p23, p31, p32, p33
-        self._P0 = [        -0.010, -0.025, 
-                     0.038,          0.037 ,
-                    -0.225, -0.081,  0.363 ,
-                     0.282, -0.154, -0.064    ]
-        # self._P0 = [0.2, 0.2, 0]
-        self._T = []  # tx, ty, tz
+        self._P = add_defaults()
         self.solved = False
-    
+
+    def printCalibMatrix(self):
+        printCalibMatrix(self._P)
+   
     def add_data(self, Fc, angles):
         # add a data point : 
         #    Fc     : Face point in cartesian camera coordinates
@@ -64,23 +81,23 @@ class MyMirrorCalib:
             return False
 
     def _solve(self):
-        self._P = curve_fit(myProjection, self.x_data, self.y_data, self._P0)[0]
+        start_values = {'tx':0, 'ty':0, 'tz':0, 's_alpha':1, 's_beta':1, 'alpha_0':0, 'beta_0':0}
+        params, initial = zip(*start_values.items())
+        f = lambda x,*args:myProjection(x, **dict(zip(params, args)))
+        p = curve_fit(f, self.x_data, self.y_data, initial)[0]
+        self._P = add_defaults(**dict(zip(params, p)))
+
         self.solved = True
         self._calcFitStats()
+
+    @staticmethod
+    def eval_for_curve_fit(x, tx, ty, tz, s_alpha, s_beta):
+        return myProjection(x, tx=tx, ty=ty, tz=tz, s_alpha=s_alpha, s_beta=s_beta)
 
     def eval(self, x) :
         p = self._P
         x = [x]
-        # return myProjection(x, p[0], p[1], p[2])
-        return myProjection(x, p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9])
-
-    def printCalibMatrix(self):
-
-        print("M [ {:6.3f} {:6.3f} {:6.3f}  ".format(1,         1,         1))
-        print("    {:6.3f} {:6.3f} {:6.3f}  ".format(1,         1,         1))
-        print("    {:6.3f} {:6.3f} {:6.3f} ]".format(1,         1,         1))
-        print("T [ {:6.3f} {:6.3f} {:6.3f} ]".format(self._P[0], self._P[1], self._P[2]))
-
+        return myProjection(x, **p)
 
     def plotResiduals(self, in_degrees=True):
         degrees = 1
