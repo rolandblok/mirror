@@ -37,17 +37,17 @@ void serial_loop() {
     } else if (ser_command.startsWith("m")) {
         selected_mirror = string_read_int(ser_command);
     } else if (ser_command.startsWith("1")) {
-        mirror_set_angle(selected_mirror, 0, -40);
+        mirror_set_angle(selected_mirror, 0, -35);
     } else if (ser_command.startsWith("2")) {
         mirror_set_angle(selected_mirror, 0, 0);
     } else if (ser_command.startsWith("3")) {
-        mirror_set_angle(selected_mirror, 0, 40);
+        mirror_set_angle(selected_mirror, 0, 35);
     } else if (ser_command.startsWith("6")) {
-        mirror_set_angle(selected_mirror, 1, -40);
+        mirror_set_angle(selected_mirror, 1, -35);
     } else if (ser_command.startsWith("5")) {
         mirror_set_angle(selected_mirror, 1, 0);
     } else if (ser_command.startsWith("4")) {
-        mirror_set_angle(selected_mirror, 1, 40);
+        mirror_set_angle(selected_mirror, 1, 35);
     } else if (ser_command.startsWith("o")) {
         mirror_add_angle(selected_mirror, 0, 1);
     } else if (ser_command.startsWith("l")) {

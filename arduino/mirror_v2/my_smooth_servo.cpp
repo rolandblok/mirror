@@ -19,6 +19,7 @@
 #define ANGLE_ACCURACY  (1)  // degree
 #define TICK_TIME  (10)      // ms
 
+#define DEADBAND (-3)
 
 MySmoothServo::MySmoothServo(int adress_offset = 0) {
   servo_controller = Adafruit_PWMServoDriver(0x40 + adress_offset);
@@ -65,7 +66,6 @@ void MySmoothServo::loop(void) {
     last_update_ms = millis();
   }
 
-  
 }
 
 void MySmoothServo::servo_smooth(bool enable){
@@ -82,13 +82,20 @@ void MySmoothServo::add_target(int s, float angle) {
 }
 
 void MySmoothServo::set_target(int s, float angle) {
-  target_angles[s] = angle;
+  if ((target_angles[s] - angle) > 0 ) {
+    target_angles[s] = angle + DEADBAND;
+  } else {
+    target_angles[s] = angle;
+  }
+  
   if (target_angles[s] > SERVO_ANGLE_MAX ) {
     target_angles[s] = SERVO_ANGLE_MAX;
   } else if (target_angles[s] < SERVO_ANGLE_MIN ) {
     target_angles[s] = SERVO_ANGLE_MIN;
   }
 }
+
+
 
 void MySmoothServo::actuate_angle(int s) {
   int pulse_width = map(cur_angles[s], -90.0, 90.0, SERVOMIN, SERVOMAX);

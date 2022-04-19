@@ -11,6 +11,7 @@ from fone_cam import *
 from my_aruco import *
 from my_pointcloud import *
 from my_serial import *
+from my_mirror_move import *
 from my_mirror_calib import *
 from my_face_detector import *
 
@@ -40,7 +41,7 @@ ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 # ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_HAAR
 # ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_DLIB
 ENABLE_ARUCO_DETECTION = True
-ENABLE_SERIAL = False
+ENABLE_SERIAL = True
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
@@ -79,7 +80,7 @@ if os.path.exists(file_calib_json) :
             my_mirror_calib.add_data(calib_point[0], angles )
 
         res = my_mirror_calib.solve(remove_outliers = True)
-        if True:  # debug plot input data
+        if False:  # debug plot input data
             my_mirror_calib.plotResiduals()
        
         if (res):
@@ -110,6 +111,7 @@ if ENABLE_SERIAL:
     my_serial = MyMirrorSerial(COM_PORT)
 else:
     my_serial = MyMirrorSerial("")
+my_mirror_move = MyMirrorMove(my_serial)
 
 # =================
 # CAMERA RS ENABLING
@@ -204,7 +206,7 @@ my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
 
 
 
-while ENABLE_FONE or ENABLE_RS_FEED:
+while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
 
     # ================
     # Realsense imaging
@@ -329,11 +331,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                     d_angle_y = math.atan(mirror_center_a17_pos[Y] / depth_a17[Z]) * 360/math.pi 
 
                     if round(d_angle_x) == 0 and round(d_angle_y) == 0 :
-                        angle_pos = my_serial.read_pos(CALIBRATION_MIRROR)
+                        angle_pos = my_mirror_move.read_pos(CALIBRATION_MIRROR)
                         calib_results.append([depth_a17, angle_pos])
                         print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
-                        my_serial.serial_delta_move(CALIBRATION_MIRROR, -d_angle_x, -d_angle_y)
+                        my_mirror_move.delta_move(CALIBRATION_MIRROR, (-d_angle_x, -d_angle_y))
 
 
 
@@ -353,7 +355,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 # print(f"    {face_3Dpoints[0]=} {angles_deg=}")
                 # angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 
-                my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
+                my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 angles0 = my_mirror_calib.eval(face_3Dpoints[0])
@@ -363,11 +365,11 @@ while ENABLE_FONE or ENABLE_RS_FEED:
                 angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
 
                 # angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
-                my_serial.serial_move(CALIBRATION_MIRROR, angles_deg_av)
+                my_mirror_move.move(CALIBRATION_MIRROR, angles_deg_av)
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
             angles_deg = [0,0]
-            my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
+            my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
 
 
     # ==================
@@ -424,7 +426,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
         if follow_mode != FollowMode.CALIBRATE:
             follow_mode = FollowMode.DISABLE
             angles_deg = [0,0]
-            my_serial.serial_move(CALIBRATION_MIRROR, angles_deg)
+            my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         if follow_mode != FollowMode.CALIBRATE:
@@ -450,6 +452,7 @@ while ENABLE_FONE or ENABLE_RS_FEED:
 
 #///////// 
 # wrapup
+my_mirror_move.save()
 print("Stop streaming")
 cv2.destroyAllWindows()
 my_serial.close()
