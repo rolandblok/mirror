@@ -18,39 +18,68 @@ class MyMirrorMove:
             self.angle_to_setpoints['scales'] = [[1,1] for i in range(self.no_mirrors)] 
             self.angle_to_setpoints['zeros'] = []
             self.angle_to_setpoints['zeros'] = [[0,0] for i in range(self.no_mirrors)] 
+        
+        for m in range(self.no_mirrors):
+            self.move(m,(0,0))
+
+    # INTERNAL CALCULATIONS
+    #   raw = scale * sp + zero
+    #   sp  = (raw - zero) / scale
+
+    def _sp_to_raw(self, mirror, angles_sp):
+        angles_raw = [0,0]
+        for i in range(2):
+            angles_raw[i] = self.angle_to_setpoints['scales'][mirror][i]  * angles_sp[i] + self.angle_to_setpoints['zeros'][mirror][i]
+        return angles_raw
+
+    def _sp_to_raw_delta(self, mirror, angles_sp_d):
+        angles_raw = [0,0]
+        for i in range(2):
+            angles_raw[i] = self.angle_to_setpoints['scales'][mirror][i] * angles_sp_d[i] 
+        return angles_raw
+        
+    def _raw_to_setpoint(self, mirror, angles_raw):
+        angles_sp = [0,0]
+        for i in range(2):
+            angles_sp[i] = (angles_raw[i] - self.angle_to_setpoints['zeros'][mirror][i]) / self.angle_to_setpoints['scales'][mirror][i]
+        return angles_sp
+
+    # UTILS
 
     def save(self):
         with open(self.file_angle_calibs, 'w') as calib_file:
             json.dump(self.angle_to_setpoints, calib_file, ensure_ascii=False, indent=4)
-
-    def _to_serial(self, mirror, angles):
-        angles_ser = [0,0]
-        for i in range(2):
-            angles_ser[i] = self.angle_to_setpoints['scales'][mirror][i] * angles[i] + self.angle_to_setpoints['zeros'][mirror][i]
-        return angles_ser
-    def _to_serial_delta(self, mirror, angles):
-        angles_ser = [0,0]
-        for i in range(2):
-            angles_ser[i] = self.angle_to_setpoints['scales'][mirror][i] * angles[i] 
-        return angles_ser
+            print("mirror move parameters saved")
         
-    def _from_serial(self, mirror, angles):
-        angles_real = [0,0]
-        for i in range(2):
-            angles_real[i] = (angles[i] - self.angle_to_setpoints['zeros'][mirror][i]) / self.angle_to_setpoints['scales'][mirror][i]
-        return angles_real
 
 
 
-    def read_pos(self, mirror):
-        return self._from_serial(self.serial.read_pos(mirror))
+    # MOVERS
 
-    def move(self, mirror, angles):
-        ser_angles = self._to_serial(mirror, angles)
-        print(f"{mirror}  {angles} {ser_angles}")
-        self.serial.serial_move(mirror, ser_angles)
+    def read_angles(self, mirror):
+        raw_angles = self.serial.read_pos(mirror)
+        return self._raw_to_setpoint(mirror, raw_angles)
 
-    def delta_move(self, mirror, delta):
-        ser_delta = self._to_serial_delta(mirror, delta)
-        self.serial.serial_delta_move(mirror, ser_delta)
+    def move(self, mirror, angles_sp):
+        raw_angles = self._sp_to_raw(mirror, angles_sp)
+        print(f"{mirror}  {angles_sp} {raw_angles}")
+        self.serial.serial_move(mirror, raw_angles)
 
+    def delta_move(self, mirror, delta_sp):
+        raw_delta = self._sp_to_raw_delta(mirror, delta_sp)
+        self.serial.serial_delta_move(mirror, raw_delta)
+
+
+    # CALIBRATORS
+
+    def zero(self, mirror):
+        raw_angles = self.serial.read_pos(mirror)
+        for a in range(2):
+            self.angle_to_setpoints['zeros'][mirror][a] = raw_angles[a]
+
+    def scale(self, mirror, degrees):
+        raw_angles = self.serial.read_pos(mirror)
+        for a in range(2):
+            self.angle_to_setpoints['scales'][mirror][a] = (raw_angles[a] - self.angle_to_setpoints['zeros'][mirror][a]) / degrees[a]
+            
+               

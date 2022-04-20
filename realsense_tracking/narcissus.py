@@ -14,6 +14,7 @@ from my_serial import *
 from my_mirror_move import *
 from my_mirror_calib import *
 from my_face_detector import *
+from my_camera_to_mirror import *
 
 import json
 import time, math, os.path
@@ -48,7 +49,6 @@ STREAM_HEIGHT=480
 
 MIRROR_ARUCO_RADIUS = 0.15 # meters
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
-CALIBRATION_MIRROR = 1
 NO_MIRRORS = 8
 #    2 1
 # 7 3 C 0 6
@@ -69,7 +69,12 @@ calib_active_index = 0
 calib_step_start_time_s = 0
 calib_last_adjust_time_ns = time.perf_counter_ns()
 face_follow_last_adjust_time_ns = time.perf_counter_ns()
+glb_active_mirror = 0
+glb_active_mirror_cur_angles = [0,0]
+
 my_mirror_calib = MyMirrorCalib()
+my_camera_to_mirror = MyMirrorToCamera()
+
 if os.path.exists(file_calib_json) :
     with open(file_calib_json, 'r') as calib_file:
         calib_results = json.load(calib_file)
@@ -98,6 +103,8 @@ else :
 
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
+
+keyboard_mirror_selection_active = False
 
 my_aruco = MyAruco()
 
@@ -257,6 +264,7 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                         cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+            cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
 
             if (ENABLE_RS_POINTCLOUD):
                 point_image = my_pointcloud.handle_new_frame(depth_frame, color_frame, color_image)
@@ -331,11 +339,12 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                     d_angle_y = math.atan(mirror_center_a17_pos[Y] / depth_a17[Z]) * 360/math.pi 
 
                     if round(d_angle_x) == 0 and round(d_angle_y) == 0 :
-                        angle_pos = my_mirror_move.read_pos(CALIBRATION_MIRROR)
+                        angle_pos = my_mirror_move.read_angles(glb_active_mirror)
                         calib_results.append([depth_a17, angle_pos])
                         print(" adding {} : {})".format(depth_a17, angle_pos))
                     else:
-                        my_mirror_move.delta_move(CALIBRATION_MIRROR, (-d_angle_x, -d_angle_y))
+                        my_mirror_move.delta_move(glb_active_mirror, (-d_angle_x, -d_angle_y))
+                        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
 
 
 
@@ -355,7 +364,8 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                 # print(f"    {face_3Dpoints[0]=} {angles_deg=}")
                 # angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
                 
-                my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
+                my_mirror_move.move(glb_active_mirror, angles_deg)
+                glb_active_mirror_cur_angles = angles_deg
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 angles0 = my_mirror_calib.eval(face_3Dpoints[0])
@@ -365,11 +375,13 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                 angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
 
                 # angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
-                my_mirror_move.move(CALIBRATION_MIRROR, angles_deg_av)
+                my_mirror_move.move(glb_active_mirror, angles_deg_av)
+                glb_active_mirror_cur_angles = angles_deg_av
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
             angles_deg = [0,0]
-            my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
+            my_mirror_move.move(glb_active_mirror, angles_deg)
+            glb_active_mirror_cur_angles = angles_deg
 
 
     # ==================
@@ -381,35 +393,73 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
     elif(key == ord('q') or key == ord('Q')):
         print("quiting")
         break
+    elif (keyboard_mirror_selection_active):    
+        if ((key == ord('0')) or (key == ord('1')) or (key == ord('2')) or (key == ord('3')) or 
+            (key == ord('4')) or (key == ord('5')) or (key == ord('6'))  or (key == ord('7'))   ) :
+            glb_active_mirror = int(chr(key))
+            my_serial._serial_write(f"m,{glb_active_mirror}")
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        keyboard_mirror_selection_active = False
     elif (key == ord('o')):
         print("{}".format(my_serial._serial_write_and_read("o")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('i')):
         print("{}".format(my_serial._serial_write_and_read("i")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('p')):
         print("{}".format(my_serial._serial_write_and_read("p")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('l')):
         print("{}".format(my_serial._serial_write_and_read("l")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('O')):
         print("{}".format(my_serial._serial_write_and_read("O")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('I')):
         print("{}".format(my_serial._serial_write_and_read("I")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('P')):
         print("{}".format(my_serial._serial_write_and_read("P")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('L')):
         print("{}".format(my_serial._serial_write_and_read("L")))
+        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
     elif (key == ord('1')):
-        print("{}".format(my_serial._serial_write_and_read("1")))
+        glb_active_mirror_cur_angles = (-10,-10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
     elif (key == ord('2')):
-        print("{}".format(my_serial._serial_write_and_read("2")))      
+        glb_active_mirror_cur_angles = (0,-10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
     elif (key == ord('3')):
-        print("{}".format(my_serial._serial_write_and_read("3")))
+        glb_active_mirror_cur_angles = (10, -10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
     elif (key == ord('4')):
-        print("{}".format(my_serial._serial_write_and_read("4")))
+        glb_active_mirror_cur_angles = (-10,0)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
     elif (key == ord('5')):
-        print("{}".format(my_serial._serial_write_and_read("5")))  
+        glb_active_mirror_cur_angles = (0,0)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
     elif (key == ord('6')):
-        print("{}".format(my_serial._serial_write_and_read("6")))
-
+        glb_active_mirror_cur_angles = (10,0)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+    elif (key == ord('7')):
+        glb_active_mirror_cur_angles = (-10,10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+    elif (key == ord('8')):
+        glb_active_mirror_cur_angles = (0,10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+    elif (key == ord('9')):
+        glb_active_mirror_cur_angles = (10,10)
+        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+    elif (key == ord('z')):
+        my_mirror_move.zero(glb_active_mirror)
+        my_mirror_move.save()
+    elif (key == ord('x')):
+        my_mirror_move.scale(glb_active_mirror, (10,10))
+        my_mirror_move.save()
+    elif (key == ord('m')):
+        print("mirror selection active")
+        keyboard_mirror_selection_active = True
     elif (key == ord('c')):
         if follow_mode == FollowMode.CALIBRATE:  # dump the data
             with open(file_calib_json, 'w') as calib_file:
@@ -418,7 +468,7 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
             my_serial.serial_mirror_smooth(True)
         else:
             follow_mode = FollowMode.CALIBRATE
-            my_serial.serial_mirror_select(CALIBRATION_MIRROR)
+            my_serial.serial_mirror_select(glb_active_mirror)
             my_serial.serial_mirror_smooth(False)
         print("caribation loop {}".format(follow_mode))
 
@@ -426,7 +476,7 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
         if follow_mode != FollowMode.CALIBRATE:
             follow_mode = FollowMode.DISABLE
             angles_deg = [0,0]
-            my_mirror_move.move(CALIBRATION_MIRROR, angles_deg)
+            my_mirror_move.move(glb_active_mirror, angles_deg)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         if follow_mode != FollowMode.CALIBRATE:
@@ -452,7 +502,6 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
 
 #///////// 
 # wrapup
-my_mirror_move.save()
 print("Stop streaming")
 cv2.destroyAllWindows()
 my_serial.close()

@@ -16,10 +16,10 @@
 // Smooth Moving.
 #define SMOOTH_ACCEL (250e-6)    // degrees / ms^2
 #define MAX_SMOOTH_SPEED (500e-3)   // degrees / ms
-#define ANGLE_ACCURACY  (1)  // degree
+#define ANGLE_ACCURACY  (0.5)  // degree
 #define TICK_TIME  (10)      // ms
 
-#define DEADBAND (-3)
+#define DEADBAND (2.2)
 
 MySmoothServo::MySmoothServo(int adress_offset = 0) {
   servo_controller = Adafruit_PWMServoDriver(0x40 + adress_offset);
@@ -31,6 +31,8 @@ void MySmoothServo::setup(void) {
   servo_controller.setOscillatorFrequency(27000000);
   servo_controller.setPWMFreq(SERVO_FREQ);
   for (int s = 0; s < NO_SERVOS; s++) {
+    active_deadband[s] = 0;
+    
     cur_angles[s] = 0;
     cur_speeds[s] = 0;
     set_target(s, 0);
@@ -82,9 +84,12 @@ void MySmoothServo::add_target(int s, float angle) {
 }
 
 void MySmoothServo::set_target(int s, float angle) {
-  if ((target_angles[s] - angle) > 0 ) {
-    target_angles[s] = angle + DEADBAND;
+  float d_angle = target_angles[s] - angle;
+  if (d_angle > 0 ) {
+    active_deadband[s] = -DEADBAND;
+    target_angles[s] = angle;
   } else {
+    active_deadband[s] = +DEADBAND;
     target_angles[s] = angle;
   }
   
@@ -98,7 +103,7 @@ void MySmoothServo::set_target(int s, float angle) {
 
 
 void MySmoothServo::actuate_angle(int s) {
-  int pulse_width = map(cur_angles[s], -90.0, 90.0, SERVOMIN, SERVOMAX);
+  int pulse_width = map(cur_angles[s]+active_deadband[s], -90.0, 90.0, SERVOMIN, SERVOMAX);
 //  Serial.println(" actuate " + String(s) +" " + String(pulse_width));
   servo_controller.setPWM(s, 0, pulse_width);
 }

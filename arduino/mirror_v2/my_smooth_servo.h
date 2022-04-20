@@ -17,8 +17,10 @@ class MySmoothServo {
     float cur_speeds[NO_SERVOS];    // degrees / ms
     long  last_update_ms;           // ms
     bool  smooth_enabled ; 
-    
+
+    float active_deadband[NO_SERVOS];
     void  actuate_angle(int s);     // actuate the servo
+    
 
   public:
     
