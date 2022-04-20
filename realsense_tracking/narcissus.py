@@ -73,7 +73,7 @@ glb_active_mirror = 0
 glb_active_mirror_cur_angles = [0,0]
 
 my_mirror_calib = MyMirrorCalib()
-my_camera_to_mirror = MyMirrorToCamera()
+my_camera_to_mirror = MyCameraToMirror()
 
 if os.path.exists(file_calib_json) :
     with open(file_calib_json, 'r') as calib_file:
