@@ -19,18 +19,18 @@ class MyCameraToMirror:
             #     4        0
             #         5 
 
-            self.calib_params[0] = np.array(0.181865, -0.15, 0)
-            self.calib_params[1] = np.array(0.181865,  0.15, 0)
+            self.calib_params[0] = np.array([0.181865, -0.15, 0])
+            self.calib_params[1] = np.array([0.181865,  0.15, 0])
 
-            self.calib_params[2] = np.array(0, 0.21, 0)
+            self.calib_params[2] = np.array([0, 0.21, 0])
 
-            self.calib_params[3] = np.array(-0.181865,  0.15, 0)
-            self.calib_params[4] = np.array(-0.181865, -0.15, 0)
+            self.calib_params[3] = np.array([-0.181865,  0.15, 0])
+            self.calib_params[4] = np.array([-0.181865, -0.15, 0])
 
-            self.calib_params[5] = np.array(0, -0.21, 0)
+            self.calib_params[5] = np.array([0, -0.21, 0])
 
-            self.calib_params[6] = np.array( 0.363731, 0, 0)
-            self.calib_params[7] = np.array(-0.363731, 0, 0)
+            self.calib_params[6] = np.array([ 0.363731, 0, 0])
+            self.calib_params[7] = np.array([-0.363731, 0, 0])
 
 
         def get_angle(self, mirror, pos_cam_3d):
@@ -39,5 +39,6 @@ class MyCameraToMirror:
             angle = [0,0]
             angle[A] = math.atan(f_m[Z] / f_m[X])
             angle[B] = math.atan(f_m[Z] / f_m[Y])
+            return angle
 
 

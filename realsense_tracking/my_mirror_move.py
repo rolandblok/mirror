@@ -62,7 +62,7 @@ class MyMirrorMove:
 
     def move(self, mirror, angles_sp):
         raw_angles = self._sp_to_raw(mirror, angles_sp)
-        print(f"{mirror}  {angles_sp} {raw_angles}")
+        print(f" MOVE {mirror}  {angles_sp} {raw_angles}")
         self.serial.serial_move(mirror, raw_angles)
 
     def delta_move(self, mirror, delta_sp):
