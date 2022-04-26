@@ -266,7 +266,10 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
             if len(face_3Dpoints) > 0:
                 cv2.putText(color_image_disp, "FACE {:.2f},{:.2f},{:.2f}".format(face_3Dpoints[0][X],face_3Dpoints[0][Y],face_3Dpoints[0][Z]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
-            cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
+                mir_angles = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0])
+                cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
+            cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 130), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
+
 
             if (ENABLE_RS_POINTCLOUD):
                 point_image = my_pointcloud.handle_new_frame(depth_frame, color_frame, color_image)
@@ -363,31 +366,29 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 # angles = my_mirror_calib.eval(face_3Dpoints[0])
                 # angles_deg = [180 * a / math.pi for a in angles ]
-                angles_deg = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0])
                 # print(f"    {face_3Dpoints[0]=} {angles_deg=}")
                 # angles_deg[0], angles_deg[1] = angles_deg[1], angles_deg[0]
-                
-                my_mirror_move.move(glb_active_mirror, angles_deg)
-                glb_active_mirror_cur_angles = angles_deg
+                for m in range(NO_MIRRORS):
+                    angles = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
+                    my_mirror_move.move(m, angles)
+
         elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 # angles0 = my_mirror_calib.eval(face_3Dpoints[0])
                 # angles1 = my_mirror_calib.eval(face_3Dpoints[1])
                 # angles_deg0 = [180 * a / math.pi for a in angles0 ]
                 # angles_deg1 = [180 * a / math.pi for a in angles1 ]
-                angles_deg0 = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0])
-                angles_deg1 = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[1])
-
-                angles_deg_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
-
                 # angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
-                my_mirror_move.move(glb_active_mirror, angles_deg_av)
-                glb_active_mirror_cur_angles = angles_deg_av
+                for m in range(NO_MIRRORS):
+                    angles_deg0 = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
+                    angles_deg1 = my_camera_to_mirror.get_angle(m, face_3Dpoints[1])
+                    angles_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
+
+                    my_mirror_move.move(m, angles_av)
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
-            angles_deg = [0,0]
-            my_mirror_move.move(glb_active_mirror, angles_deg)
-            glb_active_mirror_cur_angles = angles_deg
+            for m in range(NO_MIRRORS):
+                my_mirror_move.move(glb_active_mirror, [0,0])
 
 
     # ==================
@@ -463,6 +464,12 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
     elif (key == ord('x')):
         my_mirror_move.scale(glb_active_mirror, (10,10))
         my_mirror_move.save()
+    elif (key == ord('v')):
+        if (len(face_3Dpoint) > 0):
+            my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0])
+            my_camera_to_mirror.save()
+        else:
+            print("no zero, no face detected")
     elif (key == ord('m')):
         print("mirror selection active")
         keyboard_mirror_selection_active = True
@@ -481,8 +488,9 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
     elif (key == ord('s')) : 
         if follow_mode != FollowMode.CALIBRATE:
             follow_mode = FollowMode.DISABLE
-            angles_deg = [0,0]
-            my_mirror_move.move(glb_active_mirror, angles_deg)
+            glb_active_mirror = [0,0]
+            for m in range(NO_MIRRORS):
+                my_mirror_move.move(m, glb_active_mirror)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         if follow_mode != FollowMode.CALIBRATE:
@@ -500,8 +508,13 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
         print(" f : follow mono")
         print(" g : follow duo")
         print(" c : calibration (need to press c again to safe calibration data!)")
+        print(" 123456789 : set active mirror to angle")
         print(" I i p P : left / right")
         print(" O o l L : up / down")
+        print(" m 01234567: select mirror n" )
+        print(" z : zero the active mirror angle" )
+        print(" x : set active mirror scale to 10 degrees (use angle meter phone)" )
+        print(" v : zero active mirror to your face")
 
     
 

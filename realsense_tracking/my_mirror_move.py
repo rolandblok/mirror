@@ -50,9 +50,6 @@ class MyMirrorMove:
         with open(self.file_angle_calibs, 'w') as calib_file:
             json.dump(self.angle_to_setpoints, calib_file, ensure_ascii=False, indent=4)
             print("mirror move parameters saved")
-        
-
-
 
     # MOVERS
 
@@ -62,7 +59,7 @@ class MyMirrorMove:
 
     def move(self, mirror, angles_sp):
         raw_angles = self._sp_to_raw(mirror, angles_sp)
-        print(f" MOVE {mirror}  {angles_sp} {raw_angles}")
+        # print(f" MOVE ANGLE M:{mirror} : SP: {angles_sp} RAW:{raw_angles}")
         self.serial.serial_move(mirror, raw_angles)
 
     def delta_move(self, mirror, delta_sp):
