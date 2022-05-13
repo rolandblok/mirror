@@ -19,7 +19,7 @@
 #define ANGLE_ACCURACY  (0.5)  // degree
 #define TICK_TIME  (10)      // ms
 
-#define DEADBAND (2.2)
+#define DEADBAND (1.8)
 
 MySmoothServo::MySmoothServo(int adress_offset = 0) {
   servo_controller = Adafruit_PWMServoDriver(0x40 + adress_offset);

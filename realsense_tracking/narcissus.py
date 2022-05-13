@@ -388,7 +388,7 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
         elif time.perf_counter_ns() - face_follow_last_adjust_time_ns > FACE_FOLLOW_IDLE_TIME_NS:
             face_follow_last_adjust_time_ns = time.perf_counter_ns()
             for m in range(NO_MIRRORS):
-                my_mirror_move.move(glb_active_mirror, [0,0])
+                my_mirror_move.move(m, [0,0])
 
 
     # ==================
@@ -488,9 +488,9 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
     elif (key == ord('s')) : 
         if follow_mode != FollowMode.CALIBRATE:
             follow_mode = FollowMode.DISABLE
-            glb_active_mirror = [0,0]
+            glb_active_mirror_cur_angles = [0,0]
             for m in range(NO_MIRRORS):
-                my_mirror_move.move(m, glb_active_mirror)
+                my_mirror_move.move(m, glb_active_mirror_cur_angles)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         if follow_mode != FollowMode.CALIBRATE:
