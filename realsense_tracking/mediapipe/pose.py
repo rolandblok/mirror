@@ -1,6 +1,10 @@
 import cv2
 import mediapipe as mp
-import pyrealsense2 as rs
+import os
+if os.name == 'posix':
+    import pyrealsense2.pyrealsense2 as rs
+else:
+    import pyrealsense2 as rs
 import numpy as np
 
 def emptyfunc(p):

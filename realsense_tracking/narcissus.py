@@ -5,108 +5,65 @@
 
 from doctest import FAIL_FAST
 
-from cv2 import floodFill
 from my_utils import *
-from fone_cam import *
-from my_aruco import *
-from my_pointcloud import *
 from my_serial import *
 from my_mirror_move import *
-from my_mirror_calib import *
 from my_face_detector import *
 from my_camera_to_mirror import *
 
 import json
 import time, math, os.path
-import pyrealsense2 as rs
 import numpy as np
 
-
-# from mpl_toolkits.mplot3d import Axes3D
+import os
+if os.name == 'posix':
+    import pyrealsense2.pyrealsense2 as rs
+else:
+    import pyrealsense2 as rs
 
 import cv2
 print("opencv version : " + cv2.__version__ )
 
 WERKPLAATS = True
 if WERKPLAATS:
-    COM_PORT = "COM10"
-    CAMERA_IP = "http://192.168.94.22:4747/video"
+    if os.name == 'posix':
+        COM_PORT = '/dev/ttyUSB0'
+    else:
+        COM_PORT = "COM10"
 else: 
     COM_PORT = "COM4"
-    CAMERA_IP = "http://192.168.1.80:4747/video"
 
-ENABLE_FONE = False
 ENABLE_RS_FEED = True
-ENABLE_RS_POINTCLOUD = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-# ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_HAAR
-# ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_DLIB
-ENABLE_ARUCO_DETECTION = True
 ENABLE_SERIAL = True
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
 
-MIRROR_ARUCO_RADIUS = 0.15 # meters
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
 NO_MIRRORS = 8
 #    2 1
 # 7 3 C 0 6
 #    4 5
 
-
 class FollowMode(Enum):
     DISABLE = 0
-    CALIBRATE = 1
-    MONO = 2
-    DUO = 3
+    MONO = 1
+    DUO = 2
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
 follow_mode = FollowMode.DISABLE
-calib_points = []     # array [[:camera-xyz][:mirror-angles] :for all calib points]
-calib_active_index = 0
-calib_step_start_time_s = 0
-calib_last_adjust_time_ns = time.perf_counter_ns()
 face_follow_last_adjust_time_ns = time.perf_counter_ns()
 glb_active_mirror = 0
 glb_active_mirror_cur_angles = [0,0]
 
-my_mirror_calib = MyMirrorCalib()
 my_camera_to_mirror = MyCameraToMirror()
-
-if os.path.exists(file_calib_json) :
-    with open(file_calib_json, 'r') as calib_file:
-        calib_results = json.load(calib_file)
-        for calib_point in calib_results:
-            angles = []
-            angles.append( (calib_point[1][0]) * math.pi / 180)
-            angles.append( (calib_point[1][1]) * math.pi / 180)
-            my_mirror_calib.add_data(calib_point[0], angles )
-
-        res = my_mirror_calib.solve(remove_outliers = True)
-        if False:  # debug plot input data
-            my_mirror_calib.plotResiduals()
-       
-        if (res):
-            my_mirror_calib.printCalibMatrix()
-            # my_mirror_calib.printResiduals()
-            my_mirror_calib.printResidualsStatistics()
-        else : 
-            print('fit failed')
-        # quit()
-else :
-    calib_results = []
-    MyMirrorCalib = 0
-
-  
 
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
 
 keyboard_mirror_selection_active = False
-
-my_aruco = MyAruco()
 
 my_fps_rs = MyFPS(30)
 my_fps_phone = MyFPS(30)
@@ -132,7 +89,6 @@ if ENABLE_RS_FEED:
     pipeline_profile = config.resolve(pipeline_wrapper)
     device = pipeline_profile.get_device()
     device_product_line = str(device.get_info(rs.camera_info.product_line))
-
     
     found_rgb = False
     for s in device.sensors:
@@ -180,40 +136,24 @@ def my_mouse(event,x,y,flags,param):
     if event == cv2.EVENT_MOUSEMOVE:
         mouse_prev = (x, y)
         if mouse_btns[0]:
-            my_pointcloud.mouse_move_one(dx,dy)
+            pass
         elif mouse_btns[1]:
-            my_pointcloud.mouse_move_two(dx,dy)
+            pass
         elif mouse_btns[2]:
-            my_pointcloud.mouse_move_three(dx,dy)
+            pass
         
 # ========================
 # open window and callbacks
 cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
 cv2.moveWindow("RealSense", 20, 20)
-cv2.namedWindow('Fone', cv2.WINDOW_AUTOSIZE)
-cv2.moveWindow("Fone", 20, 660)
 cv2.setMouseCallback('RealSense', my_mouse)
 cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
 cv2.resizeWindow('Parameters', 1000, 200)
 cv2.createTrackbar('delay_ms', 'Parameters', 200, 1000, empty_fun)
 
-if ENABLE_RS_POINTCLOUD and ENABLE_RS_FEED:
-    my_pointcloud = MyPointCloud()
-    my_pointcloud.start(pipeline)
-
-if (ENABLE_FONE):
-    # open the fone camera feed
-    phone_cap = VideoCapture(CAMERA_IP)
-    if not phone_cap.isOpened():
-        print("no fone camerag ")
-        ENABLE_FONE = False
-
-
 my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
 
-
-
-while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
+while ENABLE_RS_FEED or ENABLE_SERIAL:
 
     # ================
     # Realsense imaging
@@ -238,30 +178,17 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
 
-            if follow_mode != FollowMode.CALIBRATE:
-                eye_centers = my_face_detector.detect(color_image, color_image_disp)
-                for eye_center in eye_centers:
-                    # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
-                    dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
-                    if dist > 0:
-                        face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
-                        face_3Dpoints.append(face_3Dpoint)
-                        cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
-                                    eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-                        cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+            eye_centers = my_face_detector.detect(color_image, color_image_disp)
+            for eye_center in eye_centers:
+                # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
+                dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
+                if dist > 0:
+                    face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
+                    face_3Dpoints.append(face_3Dpoint)
+                    cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
+                                eye_center, cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+                    cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
-
-            if (ENABLE_ARUCO_DETECTION):
-                rs_arucos = my_aruco.detect_and_draw(color_image, color_image_disp)
-                for rs_aruco in rs_arucos:
-                    id = rs_aruco['id']
-                    if id == 17:
-                        pix_pos_a17 = tuple2int( rs_aruco['pos'] )
-                        dist = depth_frame.get_distance(pix_pos_a17[X], pix_pos_a17[Y]) 
-                        depth_a17_found = True
-                        depth_a17 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, pix_pos_a17, dist)
-                        
-                        cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(depth_a17[X],depth_a17[Y],depth_a17[Z]), (pix_pos_a17[X], pix_pos_a17[Y]+30), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
             if len(face_3Dpoints) > 0:
@@ -270,98 +197,13 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                 cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 100), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 130), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
 
-
-            if (ENABLE_RS_POINTCLOUD):
-                point_image = my_pointcloud.handle_new_frame(depth_frame, color_frame, color_image)
-                rs_image = np.hstack((color_image_disp, depth_colormap, point_image))
-            else:
-                rs_image = np.hstack((color_image_disp, depth_colormap))
+            rs_image = np.hstack((color_image_disp, depth_colormap))
 
             cv2.imshow('RealSense', rs_image)
 
-
-    # ================
-    # FONE CAM IMAGING
-    if (ENABLE_FONE):
-        ret, phone_frame = phone_cap.read()
-        phone_frame_disp = phone_frame.copy()
-        my_fps_phone.add_frame()
-
-        fone_arucos = my_aruco.detect_and_draw(phone_frame, phone_frame_disp)
-    
-        # ================
-        # Mirror center calibratoin
-        mirror_fone_a17_pix_pos_found = False
-        hex_aruco_2_pixel_projection = MyFitProjection()
-        # find and orden all arucos
-        for fone_aruco in fone_arucos:
-            id = fone_aruco['id']
-            # if id == 0:
-            #     # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
-            # elif id == 1:
-            #     hex_aruco_2_pixel_projection.add_measurement((-MIRROR_ARUCO_RADIUS, 0), fone_aruco['pos'])
-            # elif id == 2:
-            #     hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS,+0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3)), fone_aruco['pos'])
-            if id == 0:
-                # https://cdn.inchcalculator.com/wp-content/uploads/2020/12/unit-circle-chart.png
-                hex_aruco_2_pixel_projection.add_measurement((-0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            if id == 1:
-                hex_aruco_2_pixel_projection.add_measurement((0,MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            if id == 2:
-                hex_aruco_2_pixel_projection.add_measurement((0.5*MIRROR_ARUCO_RADIUS*math.sqrt(3),-0.5*MIRROR_ARUCO_RADIUS), fone_aruco['pos'])
-            elif id == 17:
-                mirror_fone_a17_pix_pos = fone_aruco['pos'] 
-                mirror_fone_a17_pix_pos_found = True
-                cv2.drawMarker(phone_frame_disp, mirror_fone_a17_pix_pos, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
-
-        # fit the model for mirror arucos
-        if hex_aruco_2_pixel_projection.solve():
-            # debug draw an axis over the mirror, of 10 centumeters:
-            hex_mirror_middle = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,0)))
-            x_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0.10, 0   )))
-            y_ax  = tuple2int(hex_aruco_2_pixel_projection.evalX2Y((0,    0.10)))
-            cv2.line(phone_frame_disp, hex_mirror_middle, x_ax, (255,0,255), 2)
-            cv2.putText(phone_frame_disp, "x", x_ax, cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255), thickness=2)
-            cv2.line(phone_frame_disp, hex_mirror_middle, y_ax, (255,0,255), 2)
-            cv2.putText(phone_frame_disp, "y",y_ax, cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255), thickness=2)
-
-
-        # adjust mirror pos for calibration loop
-        if hex_aruco_2_pixel_projection.solved and mirror_fone_a17_pix_pos_found:
-            mirror_center_a17_pos = hex_aruco_2_pixel_projection.evalY2X(mirror_fone_a17_pix_pos)
-            cv2.putText(phone_frame_disp, "{:.3f}:{:.3f} ".format(mirror_center_a17_pos[X], mirror_center_a17_pos[Y]), 
-                (mirror_fone_a17_pix_pos[X],mirror_fone_a17_pix_pos[Y]), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-
-
-            if (follow_mode == FollowMode.CALIBRATE) and depth_a17_found:
-
-                delay_ms = cv2.getTrackbarPos('delay_ms', 'Parameters')
-                if (time.perf_counter_ns() - calib_last_adjust_time_ns) > delay_ms*1000000:
-                    calib_last_adjust_time_ns = time.perf_counter_ns()
-                    
-                    d_angle_A = math.atan(mirror_center_a17_pos[X] / depth_a17[Z]) * 360/math.pi 
-                    d_angle_B = math.atan(mirror_center_a17_pos[Y] / depth_a17[Z]) * 360/math.pi 
-
-                    if round(d_angle_A) == 0 and round(d_angle_B) == 0 :
-                        angle_pos = my_mirror_move.read_angles(glb_active_mirror)
-                        calib_results.append([depth_a17, angle_pos])
-                        print(" adding {} : {})".format(depth_a17, angle_pos))
-                    else:
-                        my_mirror_move.delta_move(glb_active_mirror, (-d_angle_A, -d_angle_B))
-                        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-
-
-
-    # Show images
-
-    if ENABLE_FONE:
-        cv2.putText(phone_frame_disp, "FPS {:.1f}".format(my_fps_phone.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
-
-        cv2.imshow('Fone', phone_frame_disp)
-
     # face following
-    if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):
+    # if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):
+    if follow_mode != FollowMode.DISABLE :
         if (follow_mode == FollowMode.MONO) and len(face_3Dpoints) > 0:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 # angles = my_mirror_calib.eval(face_3Dpoints[0])
@@ -473,17 +315,6 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
     elif (key == ord('m')):
         print("mirror selection active")
         keyboard_mirror_selection_active = True
-    elif (key == ord('c')):
-        if follow_mode == FollowMode.CALIBRATE:  # dump the data
-            with open(file_calib_json, 'w') as calib_file:
-                json.dump(calib_results, calib_file, ensure_ascii=False, indent=4)
-            follow_mode = FollowMode.DISABLE
-            my_serial.serial_mirror_smooth(True)
-        else:
-            follow_mode = FollowMode.CALIBRATE
-            my_serial.serial_mirror_select(glb_active_mirror)
-            my_serial.serial_mirror_smooth(False)
-        print("caribation loop {}".format(follow_mode))
 
     elif (key == ord('s')) : 
         if follow_mode != FollowMode.CALIBRATE:
@@ -493,12 +324,10 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
                 my_mirror_move.move(m, glb_active_mirror_cur_angles)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
-        if follow_mode != FollowMode.CALIBRATE:
-            follow_mode = FollowMode.MONO
+        follow_mode = FollowMode.MONO
         print("enable follow {}".format(follow_mode))
     elif (key == ord('g')) :
-        if follow_mode != FollowMode.CALIBRATE:
-            follow_mode = FollowMode.DUO
+        follow_mode = FollowMode.DUO
         print("enable follow {}".format(follow_mode))
 
     else :
@@ -507,7 +336,6 @@ while ENABLE_FONE or ENABLE_RS_FEED or ENABLE_SERIAL:
         print(" s : stop follow")
         print(" f : follow mono")
         print(" g : follow duo")
-        print(" c : calibration (need to press c again to safe calibration data!)")
         print(" 123456789 : set active mirror to angle")
         print(" I i p P : left / right")
         print(" O o l L : up / down")
