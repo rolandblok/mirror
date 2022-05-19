@@ -1,5 +1,9 @@
 import cv2
-import mediapipe as mp
+import os
+if os.name == 'posix':
+    import pyrealsense2.pyrealsense2 as rs
+else:
+    import pyrealsense2 as rs
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 

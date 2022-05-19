@@ -29,7 +29,11 @@ mp_face_mesh = mp.solutions.face_mesh
 # For webcam input:
 # cap = cv2.VideoCapture(1)
 
-import pyrealsense2 as rs
+import os
+if os.name == 'posix':
+    import pyrealsense2.pyrealsense2 as rs
+else:
+    import pyrealsense2 as rs
 import numpy as np
 import time, math
 

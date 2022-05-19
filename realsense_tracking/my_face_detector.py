@@ -1,8 +1,8 @@
 from enum import Enum
-import dlib
 import mediapipe as mp
 import cv2
 from my_utils import *
+# import dlib
 
 
 
@@ -10,7 +10,7 @@ class DetectorType(Enum):
     FACE_DETECTION_DISABLE = 0
     FACE_DETECTION_MEDIAPIPE = 1
     FACE_DETECTION_HAAR = 2
-    FACE_DETECTION_DLIB = 3
+    # FACE_DETECTION_DLIB = 3
 
 
 class MyFaceDetector:
@@ -22,8 +22,8 @@ class MyFaceDetector:
             self.mp_drawing = mp.solutions.drawing_utils
             self.mp_face_keypoints = mp.solutions.face_detection.FaceKeyPoint
 
-        elif (self.detector_type == DetectorType.FACE_DETECTION_DLIB):
-            self.dlib_detector = dlib.get_frontal_face_detector()    
+        # elif (self.detector_type == DetectorType.FACE_DETECTION_DLIB):
+        #     self.dlib_detector = dlib.get_frontal_face_detector()    
 
         elif (self.detector_type == DetectorType.FACE_DETECTION_HAAR):
             self.haar_cascade = cv2.CascadeClassifier('xml/haarcascade_frontalface_default.xml')
@@ -48,14 +48,14 @@ class MyFaceDetector:
                 face_eyes.append((xm,ym))
                 cv2.rectangle(color_image_draw, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
                 
-        elif (self.detector_type == DetectorType.FACE_DETECTION_DLIB):
-            rgb_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2RGB )
-            dets = self.dlib_detector(rgb_image, 1)
-            for i, d in enumerate(dets):
-                xm = math.floor((d.left() + d.right())/2)
-                ym = math.floor((d.top() + d.bottom())/2)
-                face_eyes.append((xm,ym))
-                cv2.rectangle(color_image_draw, (d.left(), d.top() ), (d.right(), d.bottom()), (0, 255, 0), thickness=2)
+        # elif (self.detector_type == DetectorType.FACE_DETECTION_DLIB):
+        #     rgb_image = cv2.cvtColor( color_image, cv2.COLOR_BGR2RGB )
+        #     dets = self.dlib_detector(rgb_image, 1)
+        #     for i, d in enumerate(dets):
+        #         xm = math.floor((d.left() + d.right())/2)
+        #         ym = math.floor((d.top() + d.bottom())/2)
+        #         face_eyes.append((xm,ym))
+        #         cv2.rectangle(color_image_draw, (d.left(), d.top() ), (d.right(), d.bottom()), (0, 255, 0), thickness=2)
 
         elif (self.detector_type == DetectorType.FACE_DETECTION_MEDIAPIPE):
             color_colormap_dim = color_image.shape
