@@ -28,8 +28,10 @@ WERKPLAATS = True
 if WERKPLAATS:
     if os.name == 'posix':
         COM_PORT = '/dev/ttyUSB0'
+        RS_REFRESH = 15
     else:
         COM_PORT = "COM10"
+        RS_REFRESH = 15
 else: 
     COM_PORT = "COM4"
 
@@ -102,8 +104,8 @@ if ENABLE_RS_FEED:
         exit(0)
 
     # config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 6)
-    config.enable_stream(rs.stream.depth, STREAM_WIDTH, STREAM_HEIGHT, rs.format.z16, 30)
-    config.enable_stream(rs.stream.color, STREAM_WIDTH, STREAM_HEIGHT, rs.format.bgr8, 30)
+    config.enable_stream(rs.stream.depth, STREAM_WIDTH, STREAM_HEIGHT, rs.format.z16, RS_REFRESH)
+    config.enable_stream(rs.stream.color, STREAM_WIDTH, STREAM_HEIGHT, rs.format.bgr8, RS_REFRESH)
     # config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
 
     # Start streaming
