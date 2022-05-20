@@ -71,7 +71,7 @@ mouse_prev = [0, 0]
 keyboard_mirror_selection_active = False
 
 my_fps_rs = MyFPS(30)
-my_fps_phone = MyFPS(30)
+my_fps_last_s = time.perf_counter()
 
 # =================
 # SERIAL ENABLING
@@ -253,6 +253,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             for m in range(NO_MIRRORS):
                 my_mirror_move.move(m, [0,0])
 
+
+    if not ENBALE_SCREEN:
+        if ( time.perf_counter() - my_fps_last_s) > 1:
+            print(f" FPS {my_fps_rs.get_fps():.0f}")
+            my_fps_last_s = time.perf_counter()
 
     # ==================
     #  interaction
