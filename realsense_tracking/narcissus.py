@@ -10,6 +10,7 @@ from my_serial import *
 from my_mirror_move import *
 from my_face_detector import *
 from my_camera_to_mirror import *
+from keyb import *
 
 import json
 import time, math, os.path
@@ -31,14 +32,14 @@ if WERKPLAATS:
         RS_REFRESH = 15
     else:
         COM_PORT = "COM10"
-        RS_REFRESH = 15
+        RS_REFRESH = 30
 else: 
     COM_PORT = "COM4"
 
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = True
-ENBALE_SCREEN = True
+ENBALE_SCREEN = False
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
@@ -146,6 +147,8 @@ def my_mouse(event,x,y,flags,param):
         elif mouse_btns[2]:
             pass
         
+keyboard = KBHit()
+
 # ========================
 # open window and callbacks
 if ENBALE_SCREEN:
@@ -253,118 +256,127 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
 
     # ==================
     #  interaction
-
-    key = cv2.waitKey(1)
-    if key == -1:
-        pass
-    elif(key == ord('q') or key == ord('Q')):
-        print("quiting")
-        break
-    elif (keyboard_mirror_selection_active):    
-        if ((key == ord('0')) or (key == ord('1')) or (key == ord('2')) or (key == ord('3')) or 
-            (key == ord('4')) or (key == ord('5')) or (key == ord('6'))  or (key == ord('7'))   ) :
-            glb_active_mirror = int(chr(key))
-            my_serial._serial_write(f"m,{glb_active_mirror}")
-            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-        keyboard_mirror_selection_active = False
-    elif (key == ord('o')):
-        print("{}".format(my_serial._serial_write_and_read("o")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('i')):
-        print("{}".format(my_serial._serial_write_and_read("i")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('p')):
-        print("{}".format(my_serial._serial_write_and_read("p")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('l')):
-        print("{}".format(my_serial._serial_write_and_read("l")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('O')):
-        print("{}".format(my_serial._serial_write_and_read("O")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('I')):
-        print("{}".format(my_serial._serial_write_and_read("I")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('P')):
-        print("{}".format(my_serial._serial_write_and_read("P")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('L')):
-        print("{}".format(my_serial._serial_write_and_read("L")))
-        glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-    elif (key == ord('1')):
-        glb_active_mirror_cur_angles = (-10,-10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('2')):
-        glb_active_mirror_cur_angles = (0,-10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('3')):
-        glb_active_mirror_cur_angles = (10, -10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('4')):
-        glb_active_mirror_cur_angles = (-10,0)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('5')):
-        glb_active_mirror_cur_angles = (0,0)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('6')):
-        glb_active_mirror_cur_angles = (10,0)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('7')):
-        glb_active_mirror_cur_angles = (-10,10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('8')):
-        glb_active_mirror_cur_angles = (0,10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('9')):
-        glb_active_mirror_cur_angles = (10,10)
-        my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
-    elif (key == ord('z')):
-        my_mirror_move.zero(glb_active_mirror)
-        my_mirror_move.save()
-    elif (key == ord('x')):
-        my_mirror_move.scale(glb_active_mirror, (10,10))
-        my_mirror_move.save()
-    elif (key == ord('v')):
-        if (len(face_3Dpoint) > 0):
-            my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0])
-            my_camera_to_mirror.save()
+    cnskey = -1
+    if keyboard.kbhit():
+        cnskey = keyboard.getch()
+        print(f"console key {cnskey}")
+    cvkey = -1
+    if ENBALE_SCREEN:
+        cvkey = cv2.waitKey(1)   # ord(chr(1)) <==> chr(ord())
+    if (cvkey != -1) or (cnskey != -1):
+        if (cnskey != -1 ):
+            key = cnskey
         else:
-            print("no zero, no face detected")
-    elif (key == ord('m')):
-        print("mirror selection active")
-        keyboard_mirror_selection_active = True
+            key = chr(cvkey)
+            print(f"cvkey {key}")
+        if(key == ('q') or key == ('Q')):
+            print("quiting")
+            break
+        elif (keyboard_mirror_selection_active):    
+            if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3')) or 
+                (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))   ) :
+                glb_active_mirror = int(chr(key))
+                my_serial._serial_write(f"m,{glb_active_mirror}")
+                glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+            keyboard_mirror_selection_active = False
+        elif (key == ('o')):
+            print("{}".format(my_serial._serial_write_and_read("o")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('i')):
+            print("{}".format(my_serial._serial_write_and_read("i")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('p')):
+            print("{}".format(my_serial._serial_write_and_read("p")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('l')):
+            print("{}".format(my_serial._serial_write_and_read("l")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('O')):
+            print("{}".format(my_serial._serial_write_and_read("O")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('I')):
+            print("{}".format(my_serial._serial_write_and_read("I")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('P')):
+            print("{}".format(my_serial._serial_write_and_read("P")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('L')):
+            print("{}".format(my_serial._serial_write_and_read("L")))
+            glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+        elif (key == ('1')):
+            glb_active_mirror_cur_angles = (-10,-10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('2')):
+            glb_active_mirror_cur_angles = (0,-10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('3')):
+            glb_active_mirror_cur_angles = (10, -10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('4')):
+            glb_active_mirror_cur_angles = (-10,0)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('5')):
+            glb_active_mirror_cur_angles = (0,0)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('6')):
+            glb_active_mirror_cur_angles = (10,0)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('7')):
+            glb_active_mirror_cur_angles = (-10,10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('8')):
+            glb_active_mirror_cur_angles = (0,10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('9')):
+            glb_active_mirror_cur_angles = (10,10)
+            my_mirror_move.move(glb_active_mirror, glb_active_mirror_cur_angles)
+        elif (key == ('z')):
+            my_mirror_move.zero(glb_active_mirror)
+            my_mirror_move.save()
+        elif (key == ('x')):
+            my_mirror_move.scale(glb_active_mirror, (10,10))
+            my_mirror_move.save()
+        elif (key == ('v')):
+            if (len(face_3Dpoint) > 0):
+                my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0])
+                my_camera_to_mirror.save()
+            else:
+                print("no zero, no face detected")
+        elif (key == ('m')):
+            print("mirror selection active")
+            keyboard_mirror_selection_active = True
 
-    elif (key == ord('s')) : 
-        follow_mode = FollowMode.DISABLE
-        glb_active_mirror_cur_angles = [0,0]
-        for m in range(NO_MIRRORS):
-            my_mirror_move.move(m, glb_active_mirror_cur_angles)
-        print("enable follow {}".format(follow_mode))
-    elif (key == ord('f')) :
-        follow_mode = FollowMode.MONO
-        print("enable follow {}".format(follow_mode))
-    elif (key == ord('g')) :
-        follow_mode = FollowMode.DUO
-        print("enable follow {}".format(follow_mode))
-    elif (key == ord('h')) :
-        follow_mode = FollowMode.DYNAMIC
-        print("enable follow {}".format(follow_mode))
+        elif (key == ('s')) : 
+            follow_mode = FollowMode.DISABLE
+            glb_active_mirror_cur_angles = [0,0]
+            for m in range(NO_MIRRORS):
+                my_mirror_move.move(m, glb_active_mirror_cur_angles)
+            print("enable follow {}".format(follow_mode))
+        elif (key == ('f')) :
+            follow_mode = FollowMode.MONO
+            print("enable follow {}".format(follow_mode))
+        elif (key == ('g')) :
+            follow_mode = FollowMode.DUO
+            print("enable follow {}".format(follow_mode))
+        elif (key == ('h')) :
+            follow_mode = FollowMode.DYNAMIC
+            print("enable follow {}".format(follow_mode))
 
-    else :
-        print(chr(key) + " pressed, unknow command")
-        print(" q : quit")
-        print(" s : stop follow")
-        print(" f : follow mono")
-        print(" g : follow duo")
-        print(" 123456789 : set active mirror to angle")
-        print(" I i p P : left / right")
-        print(" O o l L : up / down")
-        print(" m 01234567: select mirror n" )
-        print(" z : zero the active mirror angle" )
-        print(" x : set active mirror scale to 10 degrees (use angle meter phone)" )
-        print(" v : zero active mirror to your face")
+        else :
+            print(chr(key) + " pressed, unknow command")
+            print(" q : quit")
+            print(" s : stop follow")
+            print(" f : follow mono")
+            print(" g : follow duo")
+            print(" 123456789 : set active mirror to angle")
+            print(" I i p P : left / right")
+            print(" O o l L : up / down")
+            print(" m 01234567: select mirror n" )
+            print(" z : zero the active mirror angle" )
+            print(" x : set active mirror scale to 10 degrees (use angle meter phone)" )
+            print(" v : zero active mirror to your face")
 
-    
+        
 
 
 #///////// 
