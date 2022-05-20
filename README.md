@@ -45,4 +45,9 @@ samba : https://tutorials-raspberrypi.com/raspberry-pi-samba-server-share-files-
 
 
 # used library
-stolen (forked)  libs : https://www.arduino.cc/reference/en/libraries/servosmooth/
+stolen (forked)  libs : 
+
+https://www.arduino.cc/reference/en/libraries/servosmooth/
+
+https://github.com/simondlevy/kbhit
+

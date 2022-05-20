@@ -36,6 +36,7 @@ else:
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = True
+ENBALE_SCREEN = True
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
@@ -50,6 +51,7 @@ class FollowMode(Enum):
     DISABLE = 0
     MONO = 1
     DUO = 2
+    DYNAMIC = 3
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
@@ -144,12 +146,13 @@ def my_mouse(event,x,y,flags,param):
         
 # ========================
 # open window and callbacks
-cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-cv2.moveWindow("RealSense", 20, 20)
-cv2.setMouseCallback('RealSense', my_mouse)
-cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
-cv2.resizeWindow('Parameters', 1000, 200)
-cv2.createTrackbar('delay_ms', 'Parameters', 200, 1000, empty_fun)
+if ENBALE_SCREEN:
+    cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+    cv2.moveWindow("RealSense", 20, 20)
+    cv2.setMouseCallback('RealSense', my_mouse)
+    cv2.namedWindow('Parameters', cv2.WINDOW_AUTOSIZE)
+    cv2.resizeWindow('Parameters', 1000, 200)
+    cv2.createTrackbar('delay_ms', 'Parameters', 200, 1000, empty_fun)
 
 my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
 
@@ -181,7 +184,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             eye_centers = my_face_detector.detect(color_image, color_image_disp)
             for eye_center in eye_centers:
                 # https://dev.intelrealsense.com/docs/projection-in-intel-realsense-sdk-20
-                dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
+                try:
+                    dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
+                except:
+                    # print(f"dist not calculated for {eye_center[X]} { eye_center[Y]}")
+                    dist = 0
                 if dist > 0:
                     face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
                     face_3Dpoints.append(face_3Dpoint)
@@ -198,8 +205,8 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 130), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
 
             rs_image = np.hstack((color_image_disp, depth_colormap))
-
-            cv2.imshow('RealSense', rs_image)
+            if ENBALE_SCREEN:
+                cv2.imshow('RealSense', rs_image)
 
     # face following
     # if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):
@@ -221,6 +228,15 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                 # angles_deg0 = [180 * a / math.pi for a in angles0 ]
                 # angles_deg1 = [180 * a / math.pi for a in angles1 ]
                 # angles_deg_av[0], angles_deg[1] = angles_deg[1], angles_deg[0]
+                for m in range(NO_MIRRORS):
+                    angles_deg0 = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
+                    angles_deg1 = my_camera_to_mirror.get_angle(m, face_3Dpoints[1])
+                    angles_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
+
+                    my_mirror_move.move(m, angles_av)
+        elif (follow_mode == FollowMode.DYNAMIC): 
+            if len(face_3Dpoints) > 1:
+                face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 for m in range(NO_MIRRORS):
                     angles_deg0 = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
                     angles_deg1 = my_camera_to_mirror.get_angle(m, face_3Dpoints[1])
@@ -317,17 +333,19 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         keyboard_mirror_selection_active = True
 
     elif (key == ord('s')) : 
-        if follow_mode != FollowMode.CALIBRATE:
-            follow_mode = FollowMode.DISABLE
-            glb_active_mirror_cur_angles = [0,0]
-            for m in range(NO_MIRRORS):
-                my_mirror_move.move(m, glb_active_mirror_cur_angles)
+        follow_mode = FollowMode.DISABLE
+        glb_active_mirror_cur_angles = [0,0]
+        for m in range(NO_MIRRORS):
+            my_mirror_move.move(m, glb_active_mirror_cur_angles)
         print("enable follow {}".format(follow_mode))
     elif (key == ord('f')) :
         follow_mode = FollowMode.MONO
         print("enable follow {}".format(follow_mode))
     elif (key == ord('g')) :
         follow_mode = FollowMode.DUO
+        print("enable follow {}".format(follow_mode))
+    elif (key == ord('h')) :
+        follow_mode = FollowMode.DYNAMIC
         print("enable follow {}".format(follow_mode))
 
     else :
@@ -350,7 +368,8 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
 #///////// 
 # wrapup
 print("Stop streaming")
-cv2.destroyAllWindows()
+if ENBALE_SCREEN:
+    cv2.destroyAllWindows()
 my_serial.close()
 my_face_detector.close()
 # time.sleep(1)

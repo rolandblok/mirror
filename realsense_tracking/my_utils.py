@@ -45,6 +45,12 @@ class MyFPS(MyMovingAverage):
         return(1/self.get_current())
 
 
+def distance_sqr(va, vb):
+    d = 0
+    for a,b in zip(va,vb):
+        d += (a-b)*(a-b)
+
+
 # fit y = C + M x
 # y = a,b
 # C = cx, cy
