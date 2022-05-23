@@ -26,6 +26,7 @@ class MyMirrorSerial:
     # ==================
     # internal 
     def _serial_write(self, ser_com):
+        print(ser_com)
         if self.serial_connected:
             self.ser.reset_input_buffer()
             self.ser.write("{}\n".format(ser_com).encode())
@@ -36,7 +37,9 @@ class MyMirrorSerial:
 
     def _serial_write_and_read(self, ser_com):
         if self._serial_write(ser_com):
-            return self.ser.readline().decode()
+            ret = self.ser.readline().decode()
+            print(ret)
+            return ret
         else:
             return ""
 
@@ -53,7 +56,7 @@ class MyMirrorSerial:
         return mir_pos
 
     def serial_move(self, mirror, angle):
-        self._serial_write_and_read("c,{},{},{}".format(mirror, angle[A], angle[B]))
+        self._serial_write("c,{},{:.2f},{:.2f}".format(mirror, angle[A], angle[B]))
 
     def serial_delta_move(self, mirror, delta):
         print("C,{},{:.2f},{:.2f}".format(mirror, delta[A], delta[B]))

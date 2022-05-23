@@ -8,6 +8,10 @@ class MyCameraToMirror:
         self.active_face_points = []
         pass
 
+    def get_mirror_face(self, face_1, face_2):
+
+    
+
     def updateFacePoints(self, face_points):
         ddists2 = []
         for fp in face_points:

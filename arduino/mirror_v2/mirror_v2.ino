@@ -24,7 +24,7 @@ void serial_loop() {
         mirror_set_angle((int)(ser_data[0]), 1, ser_data[1]);
     } else if (ser_command.startsWith("c")){
         string_read_floats(ser_command, ser_data);
-        mirror_set_angles((int)(ser_data[0]), ser_data+1);
+        mirror_set_angles((int)(ser_data[0]), ser_data+1, false);
     } else if (ser_command.startsWith("A")) {
         string_read_floats(ser_command, ser_data);
         mirror_add_angle((int)(ser_data[0]), 0, ser_data[1]);

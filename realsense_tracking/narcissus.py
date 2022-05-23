@@ -39,7 +39,7 @@ else:
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = True
-ENBALE_SCREEN = False
+ENBALE_SCREEN = True
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
@@ -202,7 +202,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                     cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
 
-            cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+            cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 1, (0,255,55), thickness=2 )
             if len(face_3Dpoints) > 0:
                 cv2.putText(color_image_disp, "FACE {:.2f},{:.2f},{:.2f}".format(face_3Dpoints[0][X],face_3Dpoints[0][Y],face_3Dpoints[0][Z]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 1, (100,100,255), thickness=2 )
                 mir_angles = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0])
@@ -368,7 +368,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print("enable follow {}".format(follow_mode))
 
         else :
-            print(chr(key) + " pressed, unknow command")
+            print(key + " pressed, unknow command")
             print(" q : quit")
             print(" s : stop follow")
             print(" f : follow mono")
