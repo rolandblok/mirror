@@ -10,6 +10,9 @@ Y = 1
 Z = 2
 A = 0   # array indices for mirror angles
 B = 1
+NO_ANGLES_PER_MIRROR = 2
+NO_MIRRORS = 8
+
 
 
 def empty_fun(x):
@@ -49,7 +52,14 @@ def distance_sqr(va, vb):
     d = 0
     for a,b in zip(va,vb):
         d += (a-b)*(a-b)
+    return d
 
+def unique_id():
+    # https://tutorial.eyehunts.com/python/python-static-variable-in-a-function-example-code/
+    if not hasattr(unique_id, "id"):
+        unique_id.id = 0  # it doesn't exist yet, so initialize it
+    unique_id.id += 1
+    return unique_id.id
 
 # fit y = C + M x
 # y = a,b

@@ -23,6 +23,7 @@ void mirror_smooth(bool enable);
 void  mirror_get_angles(int mirror, float angles_ret[NO_ANGLES_PER_MIRROR]) ;
 float mirror_get_angle(int mirror, int a);
 
+void mirrors_set_8angles(int mirror_start, float *angles, bool log_serial = true);
 void mirror_set_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial=true);
 void mirror_set_angle(int mirror, int a, float angle, bool log_serial=true);
 

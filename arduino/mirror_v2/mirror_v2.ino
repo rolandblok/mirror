@@ -1,17 +1,25 @@
-
+#include "HardwareSerial.h"
+#include "SoftwareSerial.h"
 
 #include "my_util.h"
 #include "my_mirrors.h"
 
+// PIN 5 : SCL
+// PIN 4 : SDA
+
 void(*resetFunc) (void) = 0; 
 
+bool sinus_move = false;
+unsigned long sinus_last_update_ms = 0;
+
+// ===============
+// serial business
 void serial_loop() {
   static int selected_mirror = 0;
-  // ===============
-  // serial business
+  
   if (Serial.available() > 0) {
-    String ser_command = Serial.readStringUntil(10);
-    float ser_data[3];
+    String ser_command = Serial.readStringUntil('\n');
+    float ser_data[8] = {}; 
     if (ser_command.startsWith("R")) {   // Restart
         Serial.end();  //clears the serial monitor  if used
         resetFunc();
@@ -24,7 +32,13 @@ void serial_loop() {
         mirror_set_angle((int)(ser_data[0]), 1, ser_data[1]);
     } else if (ser_command.startsWith("c")){
         string_read_floats(ser_command, ser_data);
-        mirror_set_angles((int)(ser_data[0]), ser_data+1, false);
+        mirror_set_angles((int)(ser_data[0]), ser_data+1, true);
+    } else if (ser_command.startsWith("d")){
+        string_read_floats(ser_command, ser_data);
+        mirrors_set_8angles(0, ser_data);
+    } else if (ser_command.startsWith("e")){
+        string_read_floats(ser_command, ser_data);
+        mirrors_set_8angles(4, ser_data);
     } else if (ser_command.startsWith("A")) {
         string_read_floats(ser_command, ser_data);
         mirror_add_angle((int)(ser_data[0]), 0, ser_data[1]);
@@ -73,6 +87,8 @@ void serial_loop() {
         mirror_smooth(true);
     } else if (ser_command.startsWith("soff")) {
         mirror_smooth(false);
+    } else if (ser_command.startsWith("s")) {
+        sinus_move = !sinus_move;
     } else {         
       Serial.println("unknown command " + String(ser_command));
 
@@ -82,6 +98,8 @@ void serial_loop() {
 //        Serial.println("  a,0,10 : set for mirror 0 the servo 1 to 10 degrees");
 //        Serial.println("  b,1,10 : set for mirror 1 the servo 2 to 10 degrees");
 //        Serial.println("  c,2,-10, 10: set for mirror 2 servos 1,2 to -10, 10 degrees");
+//        Serial.println("  d,1,1,2,2,3,3,4,4: set for mirror 0,1,2,3 servos 1,2 to ... degrees");
+//        Serial.println("  e,1,1,2,2,3,3,4,4: set for mirror 4,5,6,7 servos 1,2 to -10, 10 degrees");
 //        Serial.println(" Deltas: ");
 //        Serial.println("  A,0,10 : add for mirror 0 the servo 1 with delta 10 degrees");
 //        Serial.println("  B,1,-10: add for mirror 1 the servo 1 with delta -10 degrees");
@@ -103,6 +121,7 @@ void serial_loop() {
 //        Serial.flush();
     }
   } 
+  Serial.flush();
 }
 
 
@@ -112,7 +131,7 @@ void serial_loop() {
  */
 void setup() {
   Serial.begin(115200);
-  Serial.println("Boot Started");
+  Serial.println("Boot Narcissus Started");
 
   mirror_setup();
 
@@ -121,9 +140,35 @@ void setup() {
 /** ===============================
  * Loop Routine
  */
- void loop() {
+void loop() {
+
+
+  if (sinus_move) {
+    loop_sinus();
+  }
+  
   serial_loop();
   mirror_loop();
 
-  delay(0);         
+  delay(20);         
+}
+
+
+// ====================
+// for debug: SINUS move
+void loop_sinus() {
+  static float angle = 0;
+  angle += ((float)(millis() - sinus_last_update_ms)) / 500.0;
+  float a = 30 * sin(angle);
+  float b = 30 * cos(angle);
+  float angles[16];
+  for (int i = 0 ; i < NO_MIRRORS; i++) {
+    angles[i*2+0] = a;
+    angles[i*2+1] = b;
+  }
+
+  mirrors_set_8angles(0, angles, false);
+  mirrors_set_8angles(4, angles+8, false);
+  
+  sinus_last_update_ms = millis();
 }
