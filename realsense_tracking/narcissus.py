@@ -40,7 +40,7 @@ else:
 
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = True
+ENABLE_SERIAL = False
 ENBALE_SCREEN = True
 
 STREAM_WIDTH=640
@@ -172,6 +172,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     # Realsense imaging
     depth_a17_found = False
     face_3Dpoints = []
+    eye_centers   = []
     if (ENABLE_RS_FEED):
         frameset = pipeline.poll_for_frames()
         if frameset.size() > 0:
@@ -197,7 +198,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                 try:
                     dist = depth_frame.get_distance(eye_center[X], eye_center[Y]) 
                 except:
-                    # print(f"dist not calculated for {eye_center[X]} { eye_center[Y]}")
+                    print(f"dist not calculated for {eye_center[X]} { eye_center[Y]}")
                     dist = 0
                 if dist > 0:
                     face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
@@ -220,11 +221,12 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             if ENBALE_SCREEN:
                 cv2.imshow('RealSense', rs_image)
 
-    # my_follow_mode.updateFacePoints(face_3Dpoints)
-    # n_afp = len(my_follow_mode.active_face_points.afps)
-    # print(f"\033[{n_afp+1}AFP")
-    # for afm in my_follow_mode.active_face_points.afps:
-    #     print(f" {afm.id} {afm.age_s()} {afm.fp}")
+    my_follow_mode.updateFacePoints(eye_centers)
+    n_afp = len(my_follow_mode.active_face_points.afps)
+    print(f"\033[{n_afp+1}A  AFP")
+    for afm in my_follow_mode.active_face_points.afps:
+        print(f" {afm.id} {afm.age_s()} {afm.fp}")
+        pass
 
     # face following
     # if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):

@@ -2,12 +2,13 @@
 from my_utils import *
 import time
 
-FACE_RANGE_M = 0.1  # same face distance
+FACE_RANGE_M = 40  # same face distance
 FACE_RANGE2_M2 = FACE_RANGE_M*FACE_RANGE_M  # same face distance quadratic
 FACE_MAX_AGE_S = 2  # maximum age for a face: after 2 seconds no detect : remove
 
 def fp_2str(fp):
-    return("{:.2f},{:.2f},{:.2f}".format(fp[0],fp[1],fp[2]))
+    return ",".join(f"{e:.2f}" for e in fp)
+#    return("{:.2f},{:.2f},{:.2f}".format(fp[0],fp[1],fp[2]))
 
 
 class MyFollowMode:
@@ -29,6 +30,7 @@ class MyActiveFacepoints:
             if (closest_afp_i > -1) and (dist2_m2 < FACE_RANGE2_M2) :
                 self.afps[closest_afp_i].update_fp(fp)
             else :
+                print("\n".join(f"{fp_2str(s.fp)}" for s in self.afps))
                 print("new fp with dist2_m2 {:.2f} {}".format(dist2_m2, fp_2str(fp)))
                 self.afps.append( MyActiveFacepoint(fp) )
         for afp in self.afps:
@@ -36,15 +38,19 @@ class MyActiveFacepoints:
                 self.afps.remove(afp)
 
     def closest(self, fp):
-        min_dist2_m2 = 100000
-        min_index = -1
-        for index, cur_afp in enumerate(self.afps):
-            dist2_m2 = cur_afp.distance2(fp)
-            # print(f"{dist2_m2} {fp} {cur_afp.fp}")
-            if (dist2_m2 < min_dist2_m2):
-                min_dist2_m2 = dist2_m2
-                min_index = index
-        return min_index, min_dist2_m2
+        # min_dist2_m2 = 10000000000000
+        # min_index = -1
+        # for index, cur_afp in enumerate(self.afps):
+        #     dist2_m2 = cur_afp.distance2(fp)
+        #     # print(f"{dist2_m2} {fp} {cur_afp.fp}")
+        #     if (dist2_m2 < min_dist2_m2):
+        #         min_dist2_m2 = dist2_m2
+        #         min_index = index
+        # return min_index, min_dist2_m2
+        if not self.afps:
+            return -1, 0
+        distances = [cur.distance2(fp) for cur in self.afps]
+        return min(enumerate(distances), key=lambda t:t[1])
 
     
 class MyActiveFacepoint:

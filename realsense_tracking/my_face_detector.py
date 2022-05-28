@@ -70,7 +70,7 @@ class MyFaceDetector:
                     l_eye = (l_eye.x*color_colormap_dim[1], l_eye.y*color_colormap_dim[0])
                     nose = (mp.solutions.face_detection.get_key_point(face, self.mp_face_keypoints.NOSE_TIP))
                     nose = (nose.x*color_colormap_dim[1], nose.y*color_colormap_dim[0])
-                    if (False): # use eyese
+                    if (True): # use eyese
                         xm = math.floor((r_eye[X] + l_eye[X])/2)
                         ym = math.floor((r_eye[Y] + l_eye[Y])/2)
                         face_eyes.append((xm,ym))
