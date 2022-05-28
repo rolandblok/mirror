@@ -10,7 +10,8 @@ from my_serial import *
 from my_mirror_move import *
 from my_face_detector import *
 from my_camera_to_mirror import *
-from my_follow_mode import *
+from my_active_facepoints import *
+from my_scenario_player import MyScenarioPlayer
 from keyb import *
 
 import json
@@ -18,6 +19,7 @@ import time, math, os.path
 import numpy as np
 
 import os
+
 if os.name == 'posix':
     import pyrealsense2.pyrealsense2 as rs
 else:
@@ -40,7 +42,7 @@ else:
 
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = False
+ENABLE_SERIAL = True
 ENBALE_SCREEN = True
 
 STREAM_WIDTH=640
@@ -67,7 +69,6 @@ glb_active_mirror_cur_angles = [0,0]
 
 glb_sinus_move_angle = 0
 
-my_camera_to_mirror = MyCameraToMirror()
 
 mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
@@ -84,8 +85,10 @@ if ENABLE_SERIAL:
     my_serial = MyMirrorSerial(COM_PORT)
 else:
     my_serial = MyMirrorSerial("")
+my_camera_to_mirror = MyCameraToMirror()
 my_mirror_move = MyMirrorMove(my_serial)
-my_follow_mode = MyFollowMode()
+my_active_facepoints = MyActiveFacepoints()
+my_scenario_player = MyScenarioPlayer(my_mirror_move, my_camera_to_mirror)
 
 # =================
 # CAMERA RS ENABLING
@@ -202,31 +205,33 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                     dist = 0
                 if dist > 0:
                     face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
-                    face_3Dpoints.append(face_3Dpoint)
+
+                    face_3Dpoints.append(PixAnd3D(eye_center,face_3Dpoint))
                     cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
                                 eye_center, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
                     cv2.putText(color_image_disp, "{}".format(index), 
                                 (eye_center[X], eye_center[Y] + 15), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
                     cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
-
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (0,255,55), thickness=1 )
-            if len(face_3Dpoints) > 0:
-                cv2.putText(color_image_disp, "FACE {:.2f},{:.2f},{:.2f}".format(face_3Dpoints[0][X],face_3Dpoints[0][Y],face_3Dpoints[0][Z]), (20, 55), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
-                mir_angles = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0])
-                cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
+            # if len(face_3Dpoints) > 0:
+            #     cv2.putText(color_image_disp, "FACE {:.2f},{:.2f},{:.2f}".format(face_3Dpoints[0].ThreeD.[X],face_3Dpoints[0].ThreeD.[Y],face_3Dpoints[0].ThreeD.[Z]), (20, 55), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
+            #     mir_angles = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0].ThreeD.)
+            #     cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 85), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
 
             rs_image = np.hstack((color_image_disp, depth_colormap))
             if ENBALE_SCREEN:
                 cv2.imshow('RealSense', rs_image)
 
-    my_follow_mode.updateFacePoints(eye_centers)
-    n_afp = len(my_follow_mode.active_face_points.afps)
-    print(f"\033[{n_afp+1}A  AFP")
-    for afm in my_follow_mode.active_face_points.afps:
-        print(f" {afm.id} {afm.age_s()} {afm.fp}")
-        pass
+    my_active_facepoints.updateFacePoints(face_3Dpoints)
+    # n_afp = len(my_active_facepoints.afps)
+    # print(f"\033[{n_afp+1}A  AFP")
+    # for afm in my_active_facepoints.afps:
+    #     print(f" {afm.id} {afm.age_s()} {afm.fp_pix}")
+    #     pass
+
+
 
     # face following
     # if (follow_mode != FollowMode.DISABLE) and (my_mirror_calib.solved):
@@ -235,21 +240,21 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             if (follow_mode == FollowMode.MONO) and len(face_3Dpoints) > 0:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 for m in range(NO_MIRRORS):
-                    angles = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
+                    angles = my_camera_to_mirror.get_angle(m, face_3Dpoints[0].ThreeD)
                     my_mirror_move.move_q(m, angles)
                 my_mirror_move.move_e()
 
             elif (follow_mode == FollowMode.DUO) and len(face_3Dpoints) > 1:
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 for m in range(NO_MIRRORS):
-                    angles_deg0 = my_camera_to_mirror.get_angle(m, face_3Dpoints[0])
-                    angles_deg1 = my_camera_to_mirror.get_angle(m, face_3Dpoints[1])
+                    angles_deg0 = my_camera_to_mirror.get_angle(m, face_3Dpoints[0].ThreeD)
+                    angles_deg1 = my_camera_to_mirror.get_angle(m, face_3Dpoints[1].ThreeD)
                     angles_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
                     my_mirror_move.move_q(m, angles_av)
                 my_mirror_move.move_e()
 
             elif (follow_mode == FollowMode.DYNAMIC): 
-                pass # to be implemented
+                my_scenario_player.update(my_active_facepoints)
 
             elif (follow_mode == FollowMode.SINUS): 
                 glb_sinus_move_angle += (time.perf_counter_ns() - face_follow_last_adjust_time_ns)/(0.5*1e9)
@@ -355,7 +360,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             my_mirror_move.save()
         elif (key == ('v')):
             if (len(face_3Dpoint) > 0):
-                my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0])
+                my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0].ThreeD)
                 my_camera_to_mirror.save()
             else:
                 print("no zero, no face detected")

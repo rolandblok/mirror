@@ -1,4 +1,5 @@
 
+from collections import namedtuple
 from my_utils import *
 import time
 
@@ -10,28 +11,24 @@ def fp_2str(fp):
     return ",".join(f"{e:.2f}" for e in fp)
 #    return("{:.2f},{:.2f},{:.2f}".format(fp[0],fp[1],fp[2]))
 
-
-class MyFollowMode:
-    def __init__(self):
-        self.active_face_points = MyActiveFacepoints()
-
-    def updateFacePoints(self, new_face_points):
-        self.active_face_points.update_fps(new_face_points)
-
+PixAnd3D = namedtuple("PixAnd3D",["pixels", "ThreeD"])
         
 class MyActiveFacepoints:
     def __init__(self):
         self.afps = []
 
-    def update_fps(self, new_fps):
+    def __getitem__(self, index):
+        return self.afps[index]
+
+    def updateFacePoints(self, new_fps):
         # print(f" new_fps {len(new_fps)}")
         for fp in new_fps:
             closest_afp_i, dist2_m2 = self.closest(fp)
             if (closest_afp_i > -1) and (dist2_m2 < FACE_RANGE2_M2) :
                 self.afps[closest_afp_i].update_fp(fp)
             else :
-                print("\n".join(f"{fp_2str(s.fp)}" for s in self.afps))
-                print("new fp with dist2_m2 {:.2f} {}".format(dist2_m2, fp_2str(fp)))
+                print("\n".join(f"{fp_2str(s.fp_pix)}" for s in self.afps))
+                print("new fp with dist2_m2 {:.2f} {}".format(dist2_m2, fp_2str(fp.pixels)))
                 self.afps.append( MyActiveFacepoint(fp) )
         for afp in self.afps:
             if afp.age_s() > FACE_MAX_AGE_S:
@@ -52,22 +49,43 @@ class MyActiveFacepoints:
         distances = [cur.distance2(fp) for cur in self.afps]
         return min(enumerate(distances), key=lambda t:t[1])
 
-    
+    def get_active_ids(self):
+        return {s.id for s in self.afps}
+
+    def get_3d_location_by_id(self, id):
+        for afp in self.afps:
+            if afp.id == id:
+                return afp.fp_3d
+        raise Exception(f"Could not find active facepoint for id {id}")
+
+    def has_id(self, id):
+        for afp in self.afps:
+            if afp.id == id:
+                return True
+        return False
+        
 class MyActiveFacepoint:
-    def __init__(self, fp):
+    def __init__(self, fp:PixAnd3D):
         self.id = unique_id()
-        self.fp = fp
-        self.last_seen_time_s = time.perf_counter()
+        self.update_fp(fp)
     
+    @property
+    def fp_pix(self):
+        return self._fp.pixels
+
+    @property
+    def fp_3d(self):
+        return self._fp.ThreeD
+
     def update_fp(self, fp):
-        self.fp = fp
+        self._fp = fp
         self.last_seen_time_s = time.perf_counter()
 
     def age_s(self):
         return time.perf_counter() - self.last_seen_time_s
 
     def distance2(self, fp):
-        return  distance_sqr(fp, self.fp)
+        return  distance_sqr(fp.pixels, self._fp.pixels)
 
     def toString(self):
         return(f"{self.id} {self.last_seen_time_s}")
