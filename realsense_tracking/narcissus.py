@@ -14,7 +14,7 @@ from my_active_facepoints import *
 from my_scenario_player import MyScenarioPlayer
 from keyb import *
 
-import json
+import sys
 import time, math, os.path
 import numpy as np
 
@@ -28,6 +28,8 @@ os.system('') # needed for escape sequence printing
 
 import cv2
 print("opencv version : " + cv2.__version__ )
+
+
 
 WERKPLAATS = True
 if WERKPLAATS:
@@ -43,7 +45,13 @@ else:
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = True
-ENBALE_SCREEN = True
+ENBALE_SCREEN = False
+
+print(f'Argumenent {sys.argv[0]}')
+if len(sys.argv) > 1:
+    ENBALE_SCREEN = True
+
+
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
@@ -275,9 +283,13 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                 # my_mirror_move.move()
 
 
+    # ==================
+    #   FPS to console
     if not ENBALE_SCREEN:
-        if ( time.perf_counter() - my_fps_last_s) > 1:
-            print(f" FPS {my_fps_rs.get_fps():.0f}")
+        if ( time.perf_counter() - my_fps_last_s) > 2:
+            active_faces_str =  ",".join(f"{id:.2f}" for id in my_active_facepoints.get_active_ids())
+
+            print(f" FPS {my_fps_rs.get_fps():.0f} ; faces : {active_faces_str}")
             my_fps_last_s = time.perf_counter()
 
     # ==================
