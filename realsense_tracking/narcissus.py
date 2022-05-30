@@ -287,7 +287,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     #   FPS to console
     if not ENBALE_SCREEN:
         if ( time.perf_counter() - my_fps_last_s) > 2:
-            active_faces_str =  ",".join(f"{id:.2f}" for id in my_active_facepoints.get_active_ids())
+            active_faces_str =  ",".join(f"{id}" for id in my_active_facepoints.get_active_ids())
 
             print(f" FPS {my_fps_rs.get_fps():.0f} ; faces : {active_faces_str}")
             my_fps_last_s = time.perf_counter()
