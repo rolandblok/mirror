@@ -57,8 +57,9 @@ class FollowMode(Enum):
     DISABLE = 0
     MONO = 1
     DUO = 2
-    DYNAMIC = 3
+    SCENARIO = 3
     SINUS = 4
+    MANUAL = 5
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
@@ -74,6 +75,8 @@ mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
 
 keyboard_mirror_selection_active = False
+keyboard_manual_selection = [0,0,0]  # mirror, face_id, face_id
+keyboard_manual_selection_pos = 0    # possition to fill array above
 
 my_fps_rs = MyFPS(30)
 my_fps_last_s = time.perf_counter()
@@ -88,7 +91,8 @@ else:
 my_camera_to_mirror = MyCameraToMirror()
 my_mirror_move = MyMirrorMove(my_serial)
 my_active_facepoints = MyActiveFacepoints()
-my_scenario_player = MyScenarioPlayer(my_mirror_move, my_camera_to_mirror)
+my_scenario_player = MyScenarioPlayer(my_mirror_move, my_camera_to_mirror, my_active_facepoints)
+my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
 
 # =================
 # CAMERA RS ENABLING
@@ -167,7 +171,6 @@ if ENBALE_SCREEN:
     cv2.resizeWindow('Parameters', 1000, 200)
     cv2.createTrackbar('delay_ms', 'Parameters', 200, 1000, empty_fun)
 
-my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
 
 while ENABLE_RS_FEED or ENABLE_SERIAL:
 
@@ -207,11 +210,18 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                     face_3Dpoint = rs.rs2_deproject_pixel_to_point(depth_intrinsics, eye_center, dist)
 
                     face_3Dpoints.append(PixAnd3D(eye_center,face_3Dpoint))
-                    cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(face_3Dpoint[X],face_3Dpoint[Y],face_3Dpoint[Z]), 
-                                eye_center, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
-                    cv2.putText(color_image_disp, "{}".format(index), 
-                                (eye_center[X], eye_center[Y] + 15), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
                     cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+
+            my_active_facepoints.updateFacePoints(face_3Dpoints)
+            # n_afp = len(my_active_facepoints.afps)
+            # print(f"\033[{n_afp+1}A  AFP")
+            for afm in my_active_facepoints.afps:
+                # print(f" {afm.id} {afm.age_s()} {afm.fp_pix}")
+                cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(afm.fp_3d[X],afm.fp_3d[Y],afm.fp_3d[Z]), 
+                            afm.fp_pix, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
+                cv2.putText(color_image_disp, "{}".format(afm.id), 
+                            (afm.fp_pix[X]-10, afm.fp_pix[Y] - 15), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+
 
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (0,255,55), thickness=1 )
             # if len(face_3Dpoints) > 0:
@@ -224,12 +234,6 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             if ENBALE_SCREEN:
                 cv2.imshow('RealSense', rs_image)
 
-    my_active_facepoints.updateFacePoints(face_3Dpoints)
-    # n_afp = len(my_active_facepoints.afps)
-    # print(f"\033[{n_afp+1}A  AFP")
-    # for afm in my_active_facepoints.afps:
-    #     print(f" {afm.id} {afm.age_s()} {afm.fp_pix}")
-    #     pass
 
 
 
@@ -253,11 +257,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
                     my_mirror_move.move_q(m, angles_av)
                 my_mirror_move.move_e()
 
-            elif (follow_mode == FollowMode.DYNAMIC): 
-                my_scenario_player.update(my_active_facepoints)
+            elif (follow_mode == FollowMode.SCENARIO or follow_mode == FollowMode.MANUAL): 
+                my_scenario_player.update()
 
             elif (follow_mode == FollowMode.SINUS): 
-                glb_sinus_move_angle += (time.perf_counter_ns() - face_follow_last_adjust_time_ns)/(0.5*1e9)
+                glb_sinus_move_angle += (time.perf_counter_ns() - face_follow_last_adjust_time_ns)/(2*1e9)
                 face_follow_last_adjust_time_ns = time.perf_counter_ns()
                 sin_angles = [10*math.sin(glb_sinus_move_angle), 10*math.cos(glb_sinus_move_angle) ]
                 for m in range(NO_MIRRORS):
@@ -295,12 +299,31 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print("quiting")
             break
         elif (keyboard_mirror_selection_active):    
-            if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3')) or 
-                (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))   ) :
-                glb_active_mirror = int((key))
-                my_serial._serial_write(f"m,{glb_active_mirror}")
-                glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
-            keyboard_mirror_selection_active = False
+            if follow_mode == FollowMode.MANUAL or follow_mode == FollowMode.SCENARIO:
+                if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3'))  or 
+                    (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7')) or 
+                    (key == ('8')) or (key == ('9'))                                         ) :
+                    keyboard_manual_selection[keyboard_manual_selection_pos] = int(key)
+                    keyboard_manual_selection_pos += 1
+                    if keyboard_manual_selection_pos == 3:
+                        my_scenario_player.set_manual_target(*keyboard_manual_selection)
+                        keyboard_mirror_selection_active = False
+                        keyboard_manual_selection_pos = 0
+                elif key == 'r':
+                    if keyboard_manual_selection_pos > 0:
+                        my_scenario_player.set_manual_reset(keyboard_manual_selection[0])
+                    keyboard_mirror_selection_active = False
+                    keyboard_manual_selection_pos = 0
+                else:
+                    keyboard_mirror_selection_active = False
+                    keyboard_manual_selection_pos = 0
+            else:
+                if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3')) or 
+                    (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))   ) :
+                    glb_active_mirror = int((key))
+                    my_serial._serial_write(f"m,{glb_active_mirror}")
+                    glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
+                keyboard_mirror_selection_active = False
         elif (key == ('o')):
             print("{}".format(my_serial._serial_write_and_read("o")))
             glb_active_mirror_cur_angles = my_mirror_move.read_angles(glb_active_mirror)
@@ -355,10 +378,10 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         elif (key == ('z')):
             my_mirror_move.zero(glb_active_mirror)
             my_mirror_move.save()
-        elif (key == ('x')):
+        elif (key == ('X')):
             my_mirror_move.scale(glb_active_mirror, (10,10))
             my_mirror_move.save()
-        elif (key == ('v')):
+        elif (key == ('V')):
             if (len(face_3Dpoint) > 0):
                 my_camera_to_mirror.zero_angle(glb_active_mirror, glb_active_mirror_cur_angles, face_3Dpoints[0].ThreeD)
                 my_camera_to_mirror.save()
@@ -367,6 +390,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         elif (key == ('m')):
             print("mirror selection active")
             keyboard_mirror_selection_active = True
+            keyboard_manual_selection_pos = 0
 
         elif (key == ('s')) : 
             follow_mode = FollowMode.DISABLE
@@ -381,9 +405,14 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             follow_mode = FollowMode.DUO
             print("enable follow {}".format(follow_mode))
         elif (key == ('h')) :
-            follow_mode = FollowMode.DYNAMIC
+            follow_mode = FollowMode.SCENARIO
+            my_scenario_player.set_manual(False)
             print("enable follow {}".format(follow_mode))
         elif (key == ('j')) :
+            follow_mode = FollowMode.MANUAL
+            my_scenario_player.set_manual(True)
+            print("enable follow {}".format(follow_mode))
+        elif (key == ('k')) :
             follow_mode = FollowMode.SINUS
             print("enable follow {}".format(follow_mode))
         elif (key == ('e')) :
@@ -396,15 +425,16 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(" s : stop follow")
             print(" f : follow mono")
             print(" g : follow duo")
-            print(" h : follow dynamic")
-            print(" g : follow sinus")
+            print(" h : follow scenario")
+            print(" j : follow sinus")
+            print(" k : follow sinus")
             print(" 123456789 : set active mirror to angle")
             print(" I i p P : left / right")
             print(" O o l L : up / down")
             print(" m 01234567: select mirror n" )
             print(" z : zero the active mirror angle" )
-            print(" x : set active mirror scale to 10 degrees (use angle meter phone)" )
-            print(" v : zero active mirror to your face")
+            print(" X : set active mirror scale to 10 degrees (use angle meter phone)" )
+            print(" V : zero active mirror to your face")
 
 
         

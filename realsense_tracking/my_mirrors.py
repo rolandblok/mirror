@@ -7,8 +7,8 @@ from my_utils import NO_MIRRORS
 
 class Mirror:
     def __init__(self, mirror_nbr, mirror_mover, camera_to_mirror) -> None:
-        self._source = None
-        self._destination = None
+        self._source_id = None
+        self._destination_id = None
         self._mirror_nbr = mirror_nbr
         self._mirror_mover = mirror_mover
         self._camera_to_mirror = camera_to_mirror
@@ -20,31 +20,30 @@ class Mirror:
     def has_been_reset(self):
         return self._has_been_reset
 
-    def set_source(self, value):
-        self._source = value
-
-    def set_destination(self, value):
-        self._destination = value
-
-    def update_mirror(self, afps):
-        if (self._source is None) or (self._destination is None):
-            self._reset()
-        else:
-            if afps.has_id(self._source) and afps.has_id(self._destination):
-                self.target_position1 = afps.get_3d_location_by_id(self._source)
-                self.target_position2 = afps.get_3d_location_by_id(self._destination)
-            self._move()
-
-    def _reset(self):
-        self._mirror_mover.move_q(self._mirror_nbr, [0, 0])
+    def set_src_dest_id(self, src_id, dest_id):
+        self._source_id = src_id
+        self._destination_id = dest_id
         self._has_been_reset = False
-    
-    def _move(self):
-        angles_deg0 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position1)
-        angles_deg1 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position2)
-        angles_av = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
-        self._mirror_mover.move_q(self._mirror_nbr, angles_av)
-        self._has_been_reset = False
+
+    def move_q(self, afps):
+        angles = [0,0]
+        if (self._source_id is None) or (self._destination_id is None):
+            self._has_been_reset = True        
+        elif afps.has_id(self._source_id) and afps.has_id(self._destination_id):
+            self.target_position1 = afps.get_3d_location_by_id(self._source_id)
+            self.target_position2 = afps.get_3d_location_by_id(self._destination_id)
+            angles_deg0 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position1)
+            angles_deg1 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position2)
+            angles = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
+            self._has_been_reset = False
+        else :
+            print("the target or source don't exist: clear targets")
+            self._source_id = None
+            self._destination_id = None
+            self._has_been_reset = True
+        self._mirror_mover.move_q(self._mirror_nbr, angles)
+
+
 
 class MyMirrors:
     def __init__(self, mirror_mover, camera_to_mirror) -> None:
@@ -56,16 +55,16 @@ class MyMirrors:
         return NO_MIRRORS
 
     def set_tracking(self, mirror_nbr, source_afp_id, destination_afp_id):
-        self._mirrors[mirror_nbr].set_source(source_afp_id)
-        self._mirrors[mirror_nbr].set_destination(destination_afp_id)
+        print(f"connect mirror {mirror_nbr} for face {source_afp_id} to {destination_afp_id} ")
+        self._mirrors[mirror_nbr].set_src_dest_id(source_afp_id, destination_afp_id)
     
     def reset_tracking(self, mirror_nbr):
-        self._mirrors[mirror_nbr].set_source(None)
-        self._mirrors[mirror_nbr].set_destination(None)
+        print(f"reset mirror {mirror_nbr}  ")
+        self._mirrors[mirror_nbr].set_src_dest_id(None, None)
 
     def move_mirors(self, afps):
         if all(mirror.has_been_reset for mirror in self._mirrors):
             return
         for mirror in self._mirrors:
-            mirror.update_mirror(afps)
+            mirror.move_q(afps)
         self._mirror_mover.move_e()

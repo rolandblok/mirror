@@ -28,7 +28,8 @@ class MyMirrorSerial:
     # ==================
     # internal 
     def _serial_write(self, ser_com):
-        print(" SERCOM : " + ser_com)
+        if (self.debug_on):
+            print(" SERCOM : " + ser_com)
         if self.serial_connected:
             self.ser.reset_input_buffer()
             self.ser.write("{}\n".format(ser_com).encode())
@@ -41,7 +42,8 @@ class MyMirrorSerial:
         if self._serial_write(ser_com):
             # time.sleep(0.05)
             ret = self.ser.readline().decode()
-            print(" SERRET : " + ret)
+            if self.debug_on:
+                print(" SERRET : " + ret)
             return ret
         else:
             return ""
