@@ -85,6 +85,7 @@ mouse_prev = [0, 0]
 keyboard_mirror_selection_active = False
 keyboard_manual_selection = [0,0,0]  # mirror, face_id, face_id
 keyboard_manual_selection_pos = 0    # possition to fill array above
+keyboard_manual_connection = False    # possition to fill array above
 
 my_fps_rs = MyFPS(30)
 my_fps_last_s = time.perf_counter()
@@ -310,6 +311,12 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         if(key == ('q') or key == ('Q')):
             print("quiting")
             break
+        elif (keyboard_manual_connection):
+            if follow_mode == FollowMode.MANUAL or follow_mode == FollowMode.SCENARIO:
+                if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3'))  or 
+                    (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))     ) :
+                    my_scenario_player.set_manual_target(int(key), my_active_facepoints[0], my_active_facepoints[1])
+            keyboard_manual_connection == False        
         elif (keyboard_mirror_selection_active):    
             if follow_mode == FollowMode.MANUAL or follow_mode == FollowMode.SCENARIO:
                 if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3'))  or 
@@ -403,6 +410,9 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print("mirror selection active")
             keyboard_mirror_selection_active = True
             keyboard_manual_selection_pos = 0
+        elif (key == ('n')):
+            print("mirror connection active")
+            keyboard_mirror_selection_active = True
 
         elif (key == ('s')) : 
             follow_mode = FollowMode.DISABLE
@@ -443,6 +453,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(" 123456789 : set active mirror to angle")
             print(" I i p P : left / right")
             print(" O o l L : up / down")
+            print(" n 01234567: connect mirror for face 1 and 2" )
             print(" m 01234567: select mirror n" )
             print(" z : zero the active mirror angle" )
             print(" X : set active mirror scale to 10 degrees (use angle meter phone)" )
