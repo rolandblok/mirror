@@ -36,7 +36,7 @@ class MyScenarioPlayer:
             elif len(self._my_afps.get_active_ids()) == 1 :
                 self.active_scenario = ScenarioOnePersons(self._my_mirrors, self._my_afps)
             elif len(self._my_afps.get_active_ids()) == 2 :
-                self.active_scenario = ScenarioTwoPersons(self._my_mirrors, self._my_afps)
+                self.active_scenario = ScenarioTwoPersons2(self._my_mirrors, self._my_afps)
             elif len(self._my_afps.get_active_ids()) == 3 :
                 self.active_scenario = ScenarioThreePersons(self._my_mirrors, self._my_afps)
             else:
@@ -45,9 +45,6 @@ class MyScenarioPlayer:
         if self.active_scenario:
             self.active_scenario.update()
             self._my_mirrors.move_mirors(self._my_afps)
-
-
-
 
 
 class ScenarioBase:
@@ -67,6 +64,7 @@ class ScenarioBase:
     def update(self):
         pass
 
+        
 
 class ScenarioZeroPersons(ScenarioBase):
     def __init__(self, my_mirrors, afps) -> None:
@@ -88,7 +86,7 @@ class ScenarioOnePersons(ScenarioBase):
     def update(self):
         pass        
 
-class ScenarioTwoPersons(ScenarioBase):
+class ScenarioTwoPersons1(ScenarioBase):
     def __init__(self, my_mirrors, afps) -> None:
         super().__init__(my_mirrors, afps)
         print("ScenarioTwoPersons active")
@@ -98,6 +96,21 @@ class ScenarioTwoPersons(ScenarioBase):
         self.my_mirrors.set_tracking(3, self.afps[1].id, self.afps[1].id)
         self.my_mirrors.set_tracking(4, self.afps[0].id, self.afps[0].id)
         self.my_mirrors.set_tracking(5, self.afps[1].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(6, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(7, self.afps[0].id, self.afps[1].id)
+    def update(self):
+        pass
+
+class ScenarioTwoPersons2(ScenarioBase):
+    def __init__(self, my_mirrors, afps) -> None:
+        super().__init__(my_mirrors, afps)
+        print("ScenarioTwoPersons active")
+        self.my_mirrors.set_tracking(0, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(1, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(2, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(3, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(4, self.afps[0].id, self.afps[1].id)
+        self.my_mirrors.set_tracking(5, self.afps[0].id, self.afps[1].id)
         self.my_mirrors.set_tracking(6, self.afps[0].id, self.afps[1].id)
         self.my_mirrors.set_tracking(7, self.afps[0].id, self.afps[1].id)
     def update(self):
@@ -120,4 +133,10 @@ class ScenarioThreePersons(ScenarioBase):
         pass
 
 
+class ScenarioRow:
+    def __init__(self) -> None:
+        pass
 
+class ScenarioTable:
+    def __init__(self, no_faces):
+        pass
