@@ -52,6 +52,7 @@ class MyActiveFacepoints:
     def get_active_ids(self):
         return {s.id for s in self.afps}
 
+
     def get_3d_location_by_id(self, id):
         for afp in self.afps:
             if afp.id == id:
