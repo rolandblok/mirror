@@ -314,7 +314,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         elif (keyboard_manual_connection_active):
             if follow_mode == FollowMode.MANUAL or follow_mode == FollowMode.SCENARIO:
                 if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3'))  or 
-                    (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))     ) :
+                    (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))     ) and len(my_active_facepoints) == 2:
                     my_scenario_player.set_manual_target(int(key), my_active_facepoints[0], my_active_facepoints[1])
             keyboard_manual_connection_active == False        
         elif (keyboard_mirror_selection_active):    
@@ -411,7 +411,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             keyboard_mirror_selection_active = True
             keyboard_manual_selection_pos = 0
         elif (key == ('n')):
-            print("mirror connection active")
+            print("press number for mirror connection ")
             keyboard_manual_connection_active = True
 
         elif (key == ('s')) : 
