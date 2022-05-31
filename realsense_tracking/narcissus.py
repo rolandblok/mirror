@@ -67,7 +67,7 @@ class FollowMode(Enum):
     DUO = 2
     SCENARIO = 3
     SINUS = 4
-    MANUAL = 5
+    MANUAL = 5  # allow manual seting of following
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
@@ -425,6 +425,9 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print("enable follow {}".format(follow_mode))
         elif (key == ('f')) :
             follow_mode = FollowMode.MONO
+            print("enable follow {}".format(follow_mode))
+        elif (key == ('F')) :
+            follow_mode = FollowMode.DISABLE
             print("enable follow {}".format(follow_mode))
         elif (key == ('g')) :
             follow_mode = FollowMode.DUO
