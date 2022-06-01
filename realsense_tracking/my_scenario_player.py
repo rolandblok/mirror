@@ -64,6 +64,38 @@ class ScenarioBase:
     def update(self):
         pass
 
+class ScenarioTable(ScenarioBase):
+    def __init__(self, my_mirrors, afps, time_table = [], return_line_after_end = 0) -> None:
+        super().__init__(my_mirrors, afps)
+
+        self._active_line = 0
+
+        if len(time_table) == 0:
+            self.time_table = [] #    d(s)   m0     m1     m2     m3     m4     m5     m6     m7 
+            self.time_table.append( [ 0,   -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1 ] )
+            self.return_line_after_end = 0
+        else:
+            self.time_table = time_table
+            self.return_line_after_end = return_line_after_end
+
+        self.activate_line()
+
+
+    def update(self):
+        if (perf_counter() - self._line_start_time_s) > self.time_table[self._active_line]:
+            self._active_line += 1
+            if self._active_line == len(self.time_table):
+                self._active_line = self.return_line_after_end
+            self.activate_line()
+
+    def activate_line(self):
+        for mirror in range(0,8):
+            index = 1 + 2*mirror
+            if self.time_table[self.active_line][index] > -1:
+                self.my_mirrors.set_tracking(mirror, self.time_table[self.active_line][index], [self.active_line][index+1])
+            elif self.time_table[self.active_line][index] == -2:
+                self.my_mirrors.reset_tracking(mirror)
+        self._line_start_time_s = perf_counter()
         
 
 class ScenarioZeroPersons(ScenarioBase):
@@ -85,6 +117,7 @@ class ScenarioOnePersons(ScenarioBase):
 
     def update(self):
         pass        
+
 
 class ScenarioTwoPersons1(ScenarioBase):
     def __init__(self, my_mirrors, afps) -> None:
@@ -133,10 +166,23 @@ class ScenarioThreePersons(ScenarioBase):
         pass
 
 
-class ScenarioRow:
-    def __init__(self) -> None:
-        pass
 
-class ScenarioTable:
-    def __init__(self, no_faces):
-        pass
+class ScenarioOnePersonsDynamic(ScenarioTable):
+    def __init__(self, my_mirrors, afps) -> None:
+        print("ScenarioOnePersonsDynamic active")
+
+        time_table = [] #    d(s)   m0     m1     m2     m3     m4     m5     m6     m7 
+        time_table.append( [ 0,   -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0, -1,-1, -1,-1,  0, 0, -1,-1, -1,-1, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0, -1,-1, -1,-1,  0, 0, -1,-1,  0, 0, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0, -1,-1,  0, 0,  0, 0, -1,-1,  0, 0, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0, -1,-1,  0, 0,  0, 0,  0, 0,  0, 0, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0, -1,-1, -1,-1 ] )
+        time_table.append( [ 1,    0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0, -1,-1 ] )
+        time_table.append( [ 10,   0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0  ] )
+        return_line_after_end = len(time_table) - 1
+
+        super().__init__(my_mirrors, afps, time_table, return_line_after_end)
+
+
