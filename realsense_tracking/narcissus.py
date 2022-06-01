@@ -42,9 +42,9 @@ if WERKPLAATS:
 else: 
     COM_PORT = "COM4"
 
-ENABLE_RS_FEED = True
+ENABLE_RS_FEED = False
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = True
+ENABLE_SERIAL = False
 ENBALE_SCREEN = False
 
 print(f'Argumenent {sys.argv[0]}')
