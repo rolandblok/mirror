@@ -42,9 +42,9 @@ if WERKPLAATS:
 else: 
     COM_PORT = "COM4"
 
-ENABLE_RS_FEED = False
+ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = False
+ENABLE_SERIAL = True
 ENBALE_SCREEN = False
 
 print(f'Argumenent {sys.argv[0]}')
@@ -71,7 +71,7 @@ class FollowMode(Enum):
 
 # init globalsss 
 file_calib_json = 'calib_pos.json'
-follow_mode = FollowMode.DISABLE
+follow_mode = FollowMode.SCENARIO
 face_follow_last_adjust_time_ns = time.perf_counter_ns()
 glb_active_mirror = 0
 glb_active_mirror_cur_angles = [0,0]

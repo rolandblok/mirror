@@ -13,8 +13,8 @@ class Mirror:
         self._mirror_mover = mirror_mover
         self._camera_to_mirror = camera_to_mirror
         self._has_been_reset = False
-        self.target_position1 = 0
-        self.target_position2 = 0
+        self._last_source_position = 0
+        self._last_target_position = 0
 
     @property
     def has_been_reset(self):
@@ -29,18 +29,14 @@ class Mirror:
         angles = [0,0]
         if (self._source_id is None) or (self._destination_id is None):
             self._has_been_reset = True        
-        elif afps.has_id(self._source_id) and afps.has_id(self._destination_id):
-            self.target_position1 = afps.get_3d_location_by_id(self._source_id)
-            self.target_position2 = afps.get_3d_location_by_id(self._destination_id)
-            angles_deg0 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position1)
-            angles_deg1 = self._camera_to_mirror.get_angle(self._mirror_nbr, self.target_position2)
+        else:
+            if afps.has_id(self._source_id) and afps.has_id(self._destination_id):
+                self._last_source_position = afps.get_3d_location_by_id(self._source_id)
+                self._last_target_position = afps.get_3d_location_by_id(self._destination_id)
+            angles_deg0 = self._camera_to_mirror.get_angle(self._mirror_nbr, self._last_source_position)
+            angles_deg1 = self._camera_to_mirror.get_angle(self._mirror_nbr, self._last_target_position)
             angles = np.mean( np.array([ angles_deg0, angles_deg1 ]), axis=0 )
             self._has_been_reset = False
-        else :
-            print("the target or source don't exist: clear targets")
-            self._source_id = None
-            self._destination_id = None
-            self._has_been_reset = True
         self._mirror_mover.move_q(self._mirror_nbr, angles)
 
 
