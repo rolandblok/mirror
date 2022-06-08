@@ -45,11 +45,11 @@ else:
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = True
-ENBALE_SCREEN = False
+ENABLE_SCREEN = False
 
 print(f'Argumenent {sys.argv[0]}')
 if len(sys.argv) > 1:
-    ENBALE_SCREEN = True
+    ENABLE_SCREEN = True
 
 
 
@@ -172,7 +172,7 @@ keyboard = KBHit()
 
 # ========================
 # open window and callbacks
-if ENBALE_SCREEN:
+if ENABLE_SCREEN:
     cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
     cv2.moveWindow("RealSense", 20, 20)
     cv2.setMouseCallback('RealSense', my_mouse)
@@ -226,9 +226,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             # print(f"\033[{n_afp+1}A  AFP")
             for afm in my_active_facepoints.afps:
                 # print(f" {afm.id} {afm.age_s()} {afm.fp_pix}")
+                
+
                 cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(afm.fp_3d[X],afm.fp_3d[Y],afm.fp_3d[Z]), 
                             afm.fp_pix, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
-                cv2.putText(color_image_disp, "{}".format(afm.id), 
+                cv2.putText(color_image_disp, f"{afm.id} {afm.active}", 
                             (afm.fp_pix[X]-10, afm.fp_pix[Y] - 15), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
 
@@ -240,7 +242,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 85), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
 
             rs_image = np.hstack((color_image_disp, depth_colormap))
-            if ENBALE_SCREEN:
+            if ENABLE_SCREEN:
                 cv2.imshow('RealSense', rs_image)
 
 
@@ -286,7 +288,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
 
     # ==================
     #   FPS to console
-    if not ENBALE_SCREEN:
+    if not ENABLE_SCREEN:
         if ( time.perf_counter() - my_fps_last_s) > 2:
             active_faces_str =  ",".join(f"{id}" for id in my_active_facepoints.get_active_ids())
 
@@ -300,7 +302,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         cnskey = keyboard.getch()
         print(f"console key {cnskey}")
     cvkey = -1
-    if ENBALE_SCREEN:
+    if ENABLE_SCREEN:
         cvkey = cv2.waitKey(1)   # ord(chr(1)) <==> chr(ord())
     if (cvkey != -1) or (cnskey != -1):
         if (cnskey != -1 ):
@@ -472,7 +474,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
 #///////// 
 # wrapup
 print("Stop streaming")
-if ENBALE_SCREEN:
+if ENABLE_SCREEN:
     cv2.destroyAllWindows()
 my_serial.close()
 my_face_detector.close()

@@ -5,7 +5,8 @@ import time
 
 FACE_RANGE_M = 40  # same face distance
 FACE_RANGE2_M2 = FACE_RANGE_M*FACE_RANGE_M  # same face distance quadratic
-FACE_MAX_AGE_S = 2  # maximum age for a face: after 2 seconds no detect : remove
+FACE_MAX_UNSEEN_TIME_S = 2  # maximum unseen time for a face: after 2 seconds no detect : remove
+FACE_MIN_AGE_S = 1  # minimum age for a face to become active
 
 def fp_2str(fp):
     return ",".join(f"{e:.2f}" for e in fp)
@@ -31,7 +32,7 @@ class MyActiveFacepoints:
                 print("new fp with dist2_m2 {:.2f} {}".format(dist2_m2, fp_2str(fp.pixels)))
                 self.afps.append( MyActiveFacepoint(fp) )
         for afp in self.afps:
-            if afp.age_s() > FACE_MAX_AGE_S:
+            if afp.died:
                 self.afps.remove(afp)
 
     def closest(self, fp):
@@ -50,7 +51,7 @@ class MyActiveFacepoints:
         return min(enumerate(distances), key=lambda t:t[1])
 
     def get_active_ids(self):
-        return {s.id for s in self.afps}
+        return {s.id for s in self.afps if s.active}
 
 
     def get_3d_location_by_id(self, id):
@@ -65,10 +66,12 @@ class MyActiveFacepoints:
                 return True
         return False
         
+
 class MyActiveFacepoint:
     def __init__(self, fp:PixAnd3D):
         self.id = unique_id()
         self.update_fp(fp)
+        self.born_time_s = time.perf_counter()
     
     @property
     def fp_pix(self):
@@ -82,8 +85,13 @@ class MyActiveFacepoint:
         self._fp = fp
         self.last_seen_time_s = time.perf_counter()
 
-    def age_s(self):
-        return time.perf_counter() - self.last_seen_time_s
+    @property
+    def active(self):
+        return (time.perf_counter() - self.born_time_s) > FACE_MIN_AGE_S
+
+    @property
+    def died(self):
+        return (time.perf_counter() - self.last_seen_time_s) > FACE_MAX_UNSEEN_TIME_S
 
     def distance2(self, fp):
         return  distance_sqr(fp.pixels, self._fp.pixels)
