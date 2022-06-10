@@ -4,6 +4,10 @@ import math
 import unittest
 import time
 
+
+STREAM_WIDTH=640
+STREAM_HEIGHT=480
+
 # CONSTANTS
 X = 0   # array indices for cartesian dimensions
 Y = 1
@@ -13,6 +17,49 @@ B = 1
 NO_ANGLES_PER_MIRROR = 2
 NO_MIRRORS = 8
 
+REL_MIR_POS={}
+# REL_MIR_POS[0] = (11/16,  4/6)
+# REL_MIR_POS[1] = (11/16,  2/6)
+# REL_MIR_POS[2] = ( 8/16,  1/6)
+# REL_MIR_POS[3] = ( 5/16,  2/6)
+# REL_MIR_POS[4] = ( 5/16,  4/6)
+# REL_MIR_POS[5] = ( 8/16,  5/6)
+# REL_MIR_POS[6] = (14/16,  3/6)
+# REL_MIR_POS[7] = ( 2/16,  3/6)
+
+REL_MIR_POS[4] = (11/16,  4/6)
+REL_MIR_POS[3] = (11/16,  2/6)
+REL_MIR_POS[2] = ( 8/16,  1/6)
+REL_MIR_POS[1] = ( 5/16,  2/6)
+REL_MIR_POS[0] = ( 5/16,  4/6)
+REL_MIR_POS[5] = ( 8/16,  5/6)
+REL_MIR_POS[7] = (14/16,  3/6)
+REL_MIR_POS[6] = ( 2/16,  3/6)
+
+def PIX_MIR_POS(W,H, m):
+    return tuple2int((REL_MIR_POS[m][X]*W , REL_MIR_POS[m][Y]*H))
+
+def closest_mirror_pix(W, H, pix_pos): # W,H : screen width, height; pix_pos : pixel pos (x,y)
+    distances = [distance_sqr(PIX_MIR_POS(W,H,m), pix_pos) for m in range(NO_MIRRORS)]
+    return min(enumerate(distances), key=lambda t:t[1])
+
+def cv_draw_hex(cv2, image, center, radius_x, radius_y, color, thickness):
+    cv2.line(image, tuple2int((center[X] + radius_x,   center[Y]            )), tuple2int((center[X] + radius_x/2, center[Y] - radius_y)) , color, thickness )
+    cv2.line(image, tuple2int((center[X] + radius_x/2, center[Y] - radius_y )), tuple2int((center[X] - radius_x/2, center[Y] - radius_y)) , color, thickness )
+    cv2.line(image, tuple2int((center[X] - radius_x/2, center[Y] - radius_y )), tuple2int((center[X] - radius_x,   center[Y]           )) , color, thickness )
+    cv2.line(image, tuple2int((center[X] - radius_x,   center[Y]            )), tuple2int((center[X] - radius_x/2, center[Y] + radius_y)) , color, thickness )
+    cv2.line(image, tuple2int((center[X] - radius_x/2, center[Y] + radius_y )), tuple2int((center[X] + radius_x/2, center[Y] + radius_y)) , color, thickness )
+    cv2.line(image, tuple2int((center[X] + radius_x/2, center[Y] + radius_y )), tuple2int((center[X] + radius_x,   center[Y]           )) , color, thickness )
+
+def cv_draw_mirrors(cv2, image, W, H):
+    color      = (255, 255, 255)
+    thickness  = 1
+    radius_x     = W *2/16
+    radius_y     = H *1/8
+    for m in range(0, NO_MIRRORS):
+        pmp = PIX_MIR_POS(W,H,m)
+        cv_draw_hex(cv2, image, pmp, radius_x, radius_y, color, thickness)
+        cv2.putText(image, f"{m}", pmp, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,55), thickness=1 )
 
 
 def empty_fun(x):
@@ -53,6 +100,11 @@ def distance_sqr(va, vb):
     for a,b in zip(va,vb):
         d += (a-b)*(a-b)
     return d
+
+def average(va, vb):
+    return [0.5*(a+b) for a,b in zip(va,vb)]
+        
+    
 
 def unique_id():
     # https://tutorial.eyehunts.com/python/python-static-variable-in-a-function-example-code/

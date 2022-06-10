@@ -32,7 +32,7 @@ print(ser.name)
 
 send_str = ""
 while True:
-    val = ser.readline().decode()
+    val = ser.readline().decode(encoding='UTF-8',errors='replace')
     print(val, end="\r", flush=True)
     # https://python.tutorialink.com/non-blocking-console-input/
     if msvcrt.kbhit():

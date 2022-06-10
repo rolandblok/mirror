@@ -3,6 +3,7 @@
 from time import perf_counter
 from my_active_facepoints import MyActiveFacepoints
 from my_mirrors import MyMirrors
+from my_utils import *
 
 
 class MyScenarioPlayer:
@@ -35,11 +36,14 @@ class MyScenarioPlayer:
                 self.active_scenario = ScenarioZeroPersons(self._my_mirrors, self._my_afps)
             elif len(self._my_afps.get_active_ids()) == 1 :
                 # self.active_scenario = ScenarioOnePersons(self._my_mirrors, self._my_afps)
-                self.active_scenario = Scenario_1_PersonsDynamic(self._my_mirrors, self._my_afps)
+                # self.active_scenario = ScenarioTable_1_Person(self._my_mirrors, self._my_afps)
+                self.active_scenario = ScenarioTimedClosest_1_Person(self._my_mirrors, self._my_afps)
+                
             elif len(self._my_afps.get_active_ids()) == 2 :
-                self.active_scenario = Scenario_2_PersonsDynamic(self._my_mirrors, self._my_afps)
+                # self.active_scenario = ScenarioTable_2_Persons(self._my_mirrors, self._my_afps)
+                self.active_scenario = ScenarioTimedClosest_2_Person(self._my_mirrors, self._my_afps)
             else:
-                self.active_scenario = Scenario_3_PersonsDynamic(self._my_mirrors, self._my_afps)
+                self.active_scenario = ScenarioTable_3_Persons(self._my_mirrors, self._my_afps)
 
         if self.active_scenario:
             self.active_scenario.update()
@@ -150,7 +154,7 @@ class ScenarioTable(ScenarioBase):
     def start(self):
         self.activate_line()
 
-
+    # called each update tick
     def update(self):
         aged = False
         if (perf_counter() - self._line_start_time_s) > self._time_table[self._active_line]:
@@ -162,6 +166,7 @@ class ScenarioTable(ScenarioBase):
             self.activate_line()
         return aged
 
+    # when new line is activated : check mirror targets
     def activate_line(self):
         for mirror in range(0,8):
             if self._mirror_table[self._active_line][mirror][0] > -1:
@@ -174,7 +179,7 @@ class ScenarioTable(ScenarioBase):
 
 
 
-class Scenario_1_PersonsDynamic(ScenarioTable):
+class ScenarioTable_1_Person(ScenarioTable):
     def __init__(self, my_mirrors, afps) -> None:
         super().__init__(my_mirrors, afps)
         print("ScenarioOnePersonsDynamic active")
@@ -190,7 +195,7 @@ class Scenario_1_PersonsDynamic(ScenarioTable):
 
         self.start()
 
-class Scenario_2_PersonsDynamic(ScenarioTable):
+class ScenarioTable_2_Persons(ScenarioTable):
     def __init__(self, my_mirrors, afps) -> None:
         super().__init__(my_mirrors, afps)
         print("ScenarioOnePersonsDynamic active")
@@ -218,7 +223,7 @@ class Scenario_2_PersonsDynamic(ScenarioTable):
 
         self.start()
 
-class Scenario_3_PersonsDynamic(ScenarioTable):
+class ScenarioTable_3_Persons(ScenarioTable):
     def __init__(self, my_mirrors, afps) -> None:
         super().__init__(my_mirrors, afps)
         print("ScenarioOnePersonsDynamic active")
@@ -244,3 +249,127 @@ class Scenario_3_PersonsDynamic(ScenarioTable):
 
 
 
+#  /////////////////////////
+#    Timed Closest Scenarios
+#  ////////////////////////
+
+class ScenarioTimedClosest(ScenarioBase):
+    def __init__(self, my_mirrors, afps) -> None:
+        super().__init__(my_mirrors, afps)
+
+        self._active_line  = 0
+        self._time_table   = []
+        self._mirror_table = []
+        self._return_line_after_end = 0
+
+    def append(self, duration, mirror_sp, return_line = False):
+        self._time_table.append(duration)
+        self._mirror_table.append(mirror_sp)
+        if (return_line) :
+            self._return_line_after_end = len(self._time_table) - 1
+
+    def start(self):
+        self.activate_line()
+
+    # called each update tick
+    def update(self):
+        aged = False
+        if (perf_counter() - self._line_start_time_s) > self._time_table[self._active_line]:
+            self._active_line += 1
+            if self._active_line == len(self._time_table):
+                self._active_line = self._return_line_after_end
+                aged = True
+                return aged
+            self.activate_line()
+        return aged
+
+    # when new line is activated : check mirror targets
+    def activate_line(self):
+        print(f"line {self._active_line} activation  ")
+        mir_pix_poss = {}
+        for mirror in range(NO_MIRRORS):
+            mir_pix_poss[mirror] = PIX_MIR_POS(STREAM_WIDTH, STREAM_HEIGHT, mirror)
+
+        for mirror in range(NO_MIRRORS):
+            if self._mirror_table[self._active_line][mirror][0] > -1:
+                face_nr_0 = self._mirror_table[self._active_line][mirror][0]
+                face_nr_1 = self._mirror_table[self._active_line][mirror][1]
+                pix_pos = average(self.afps[face_nr_1].fp_pix , self.afps[face_nr_1].fp_pix )
+
+                distances = [(distance_sqr(mir_pix_poss[m], pix_pos), m) for m in mir_pix_poss]
+                dist , closest_mirror = min(distances, key=lambda t:t[0])
+                mir_pix_poss.pop(closest_mirror)
+
+                self.my_mirrors.set_tracking(closest_mirror, self.afps[face_nr_0].id , self.afps[face_nr_1].id)
+            elif self._mirror_table[self._active_line][mirror][0] == -2:
+                self.my_mirrors.reset_tracking(mirror)
+        self._line_start_time_s = perf_counter()
+
+
+class ScenarioTimedClosest_1_Person(ScenarioTimedClosest):
+    def __init__(self, my_mirrors, afps) -> None:
+        super().__init__(my_mirrors, afps)
+        print("ScenarioTimedClosest_1_Person active")
+
+        self.append(2.0, [[ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.6, [[ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.4, [[ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.2, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [-1,-1 ]] )
+        self.append(1.0, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0 ]], True )
+
+        self.start()
+
+class ScenarioTimedClosest_2_Person(ScenarioTimedClosest):
+    def __init__(self, my_mirrors, afps) -> None:
+        super().__init__(my_mirrors, afps)
+        print("ScenarioTimedClosest_2_Person active")
+
+        self.append(2.0, [[ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.6, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.4, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.2, [[ 0, 1], [-1,-1], [ 0, 1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1 ]] )
+        self.append(4.0, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1 ]], True )
+        self.append(4.0, [[ 0, 1], [ 0, 0], [ 0, 1], [ 0, 1], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 1 ]] )
+        self.append(3.8, [[ 0, 1], [ 0, 0], [ 1, 1], [ 0, 1], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 0 ]] )
+        self.append(2.4, [[ 0, 1], [ 0, 0], [ 1, 1], [ 0, 0], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 0 ]] )
+        self.append(4.3, [[ 1, 1], [ 0, 0], [ 1, 1], [ 0, 0], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 1 ]] )
+        self.append(4.2, [[ 1, 1], [ 0, 0], [ 1, 1], [ 0, 0], [ 0, 1], [ 1, 1], [ 1, 1], [ 0, 1 ]] )
+        self.append(3.2, [[ 1, 1], [ 1, 1], [ 1, 1], [ 0, 0], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 1 ]] )
+        self.append(3.2, [[ 0, 1], [ 1, 1], [ 1, 1], [ 0, 0], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 1 ]] )
+        self.append(3.8, [[ 0, 1], [ 1, 1], [ 0, 1], [ 0, 0], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 1 ]] )
+        self.append(3.3, [[ 0, 1], [ 1, 1], [ 0, 1], [ 0, 1], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 1 ]] )
+        self.append(3.7, [[ 0, 1], [ 1, 1], [ 0, 1], [ 0, 1], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 0 ]] )
+        self.append(3.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 0], [ 1, 1], [ 1, 1], [ 0, 0 ]] )
+        self.append(4.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 0], [ 1, 1], [ 0, 1], [ 0, 0 ]] )
+
+        self.start()
+
+class ScenarioTimedClosest_3_Person(ScenarioTimedClosest):
+    def __init__(self, my_mirrors, afps) -> None:
+        super().__init__(my_mirrors, afps)
+        print("ScenarioTimedClosest_3_Person active")
+
+        self.append(0.6, [[ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.6, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 2], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.4, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 2], [-1,-1], [ 1, 2], [-1,-1], [-1,-1 ]] )
+        self.append(0.2, [[ 0, 1], [-1,-1], [ 0, 0], [ 0, 2], [-1,-1], [ 1, 2], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [ 0, 1], [-1,-1 ]] )
+        self.append(1.0, [[ 0, 1], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [ 0, 1], [ 1, 2 ]], True )
+        self.append(2.0, [[ 1, 2], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [ 0, 1], [ 0, 1 ]] )
+        self.append(2.5, [[ 1, 2], [ 2, 2], [ 0, 0], [ 0, 1], [ 1, 2], [ 1, 2], [ 0, 1], [ 0, 1 ]] )
+        self.append(1.5, [[ 1, 2], [ 0, 0], [ 0, 2], [ 0, 1], [ 1, 2], [ 1, 2], [ 0, 1], [ 0, 1 ]] )
+        self.append(1.0, [[ 1, 2], [ 0, 0], [ 0, 2], [ 0, 1], [ 1, 2], [ 1, 1], [ 2, 2], [ 0, 1 ]] )
+        self.append(2.3, [[ 0, 1], [ 0, 0], [ 0, 2], [ 0, 2], [ 1, 2], [ 1, 1], [ 2, 2], [ 0, 1 ]] )
+        self.append(1.7, [[ 0, 1], [ 2, 2], [ 0, 2], [ 0, 2], [ 1, 1], [ 1, 1], [ 2, 2], [ 0, 1 ]] )
+        self.append(2.1, [[ 0, 1], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 1], [ 0, 1], [ 0, 1 ]] )
+        self.append(1.8, [[ 0, 1], [ 2, 2], [ 0, 0], [ 0, 2], [ 1, 1], [ 1, 2], [ 0, 1], [ 1, 2 ]] )
+
+        self.start()

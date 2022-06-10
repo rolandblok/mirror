@@ -5,8 +5,8 @@ import time
 
 FACE_RANGE_M = 40  # same face distance
 FACE_RANGE2_M2 = FACE_RANGE_M*FACE_RANGE_M  # same face distance quadratic
-FACE_MAX_UNSEEN_TIME_S = 2  # maximum unseen time for a face: after 2 seconds no detect : remove
-FACE_MIN_AGE_S = 1  # minimum age for a face to become active
+FACE_MAX_UNSEEN_TIME_S = 1.5  # maximum unseen time for a face: after 2 seconds no detect : remove
+FACE_MIN_AGE_S = FACE_MAX_UNSEEN_TIME_S # minimum age for a face to become active
 
 def fp_2str(fp):
     return ",".join(f"{e:.2f}" for e in fp)
@@ -36,15 +36,6 @@ class MyActiveFacepoints:
                 self.afps.remove(afp)
 
     def closest(self, fp):
-        # min_dist2_m2 = 10000000000000
-        # min_index = -1
-        # for index, cur_afp in enumerate(self.afps):
-        #     dist2_m2 = cur_afp.distance2(fp)
-        #     # print(f"{dist2_m2} {fp} {cur_afp.fp}")
-        #     if (dist2_m2 < min_dist2_m2):
-        #         min_dist2_m2 = dist2_m2
-        #         min_index = index
-        # return min_index, min_dist2_m2
         if not self.afps:
             return -1, 0
         distances = [cur.distance2(fp) for cur in self.afps]

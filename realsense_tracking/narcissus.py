@@ -37,7 +37,7 @@ if WERKPLAATS:
         COM_PORT = '/dev/ttyUSB0'
         RS_REFRESH = 15
     else:
-        COM_PORT = "COM10"
+        COM_PORT = "COM12"
         RS_REFRESH = 30
 else: 
     COM_PORT = "COM4"
@@ -51,10 +51,6 @@ print(f'Argumenent {sys.argv[0]}')
 if len(sys.argv) > 1:
     ENABLE_SCREEN = True
 
-
-
-STREAM_WIDTH=640
-STREAM_HEIGHT=480
 
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
 #    2 1
@@ -240,6 +236,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             #     mir_angles = my_camera_to_mirror.get_angle(glb_active_mirror, face_3Dpoints[0].ThreeD.)
             #     cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 85), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
+            cv_draw_mirrors(cv2, color_image_disp, STREAM_WIDTH, STREAM_HEIGHT)
 
             rs_image = np.hstack((color_image_disp, depth_colormap))
             if ENABLE_SCREEN:
