@@ -13,6 +13,7 @@ from my_camera_to_mirror import *
 from my_active_facepoints import *
 from my_scenario_player import MyScenarioPlayer
 from keyb import *
+from my_http import ThreadedServer
 
 import sys
 import time, math, os.path
@@ -44,8 +45,8 @@ else:
 
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = True
-ENABLE_SCREEN = False
+ENABLE_SERIAL = False
+ENABLE_SCREEN = True
 
 print(f'Argumenent {sys.argv[0]}')
 if len(sys.argv) > 1:
@@ -98,6 +99,7 @@ my_mirror_move = MyMirrorMove(my_serial)
 my_active_facepoints = MyActiveFacepoints()
 my_scenario_player = MyScenarioPlayer(my_mirror_move, my_camera_to_mirror, my_active_facepoints)
 my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
+my_http_server = ThreadedServer()
 
 # =================
 # CAMERA RS ENABLING
@@ -129,6 +131,8 @@ if ENABLE_RS_FEED:
     # Start streaming
     pipeline.start(config)
     depth_intrinsics = rs.video_stream_profile(pipeline.get_active_profile().get_stream(rs.stream.depth)).get_intrinsics()
+
+    aligner = rs.align(rs.stream.color)
 
     print("pipeline started")
 
@@ -187,6 +191,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     if (ENABLE_RS_FEED):
         frameset = pipeline.poll_for_frames()
         if frameset.size() > 0:
+            frameset = aligner.process(frameset)
             depth_frame = frameset.get_depth_frame()
             color_frame = frameset.get_color_frame()
             if not depth_frame or not color_frame:
@@ -199,6 +204,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             color_image_disp = color_image.copy()
             # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
             depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+            depth_colormap_disp = depth_colormap.copy()
 
             depth_colormap_dim = depth_colormap.shape
             color_colormap_dim = color_image.shape
@@ -216,6 +222,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
 
                     face_3Dpoints.append(PixAnd3D(eye_center,face_3Dpoint))
                     cv2.drawMarker(color_image_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
+                    cv2.drawMarker(depth_colormap_disp, eye_center, (255, 255, 255), cv2.MARKER_CROSS, 10, 1)
 
             my_active_facepoints.updateFacePoints(face_3Dpoints)
             # n_afp = len(my_active_facepoints.afps)
@@ -238,7 +245,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 85), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
             cv_draw_mirrors(cv2, color_image_disp, STREAM_WIDTH, STREAM_HEIGHT)
 
-            rs_image = np.hstack((color_image_disp, depth_colormap))
+            rs_image = np.hstack((color_image_disp, depth_colormap_disp))
             if ENABLE_SCREEN:
                 cv2.imshow('RealSense', rs_image)
 
@@ -292,6 +299,9 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(f" FPS {my_fps_rs.get_fps():.0f} ; faces : {active_faces_str}")
             my_fps_last_s = time.perf_counter()
 
+    httpkey = my_http_server.get_next_command()
+    httpkey_set = (httpkey is not None)
+
     # ==================
     #  interaction
     cnskey = -1
@@ -301,9 +311,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     cvkey = -1
     if ENABLE_SCREEN:
         cvkey = cv2.waitKey(1)   # ord(chr(1)) <==> chr(ord())
-    if (cvkey != -1) or (cnskey != -1):
+    if (cvkey != -1) or (cnskey != -1) or (httpkey_set):
         if (cnskey != -1 ):
             key = cnskey
+        elif httpkey_set:
+            key = httpkey
         else:
             key = chr(cvkey)
             print(f"cvkey {key}")
@@ -464,7 +476,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(" X : set active mirror scale to 10 degrees (use angle meter phone)" )
             print(" V : zero active mirror to your face")
 
-
+    
         
 
 
