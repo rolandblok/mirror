@@ -33,11 +33,13 @@ print(ser.name)
 send_str = ""
 while True:
     val = ser.readline().decode(encoding='UTF-8',errors='replace')
-    print(val, end="\r", flush=True)
+    print(val, end="", flush=True)
     # https://python.tutorialink.com/non-blocking-console-input/
     if msvcrt.kbhit():
         typed_char = msvcrt.getch()
-        if typed_char == b'\r':
+        if typed_char == b'\x1b':  # quit on escape
+            quit()        
+        elif typed_char == b'\r':
             print("  . SENDING " +send_str)
             send_str += "\n"
             ser.write((send_str.encode()))
