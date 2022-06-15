@@ -64,21 +64,26 @@ class myHandler(BaseHTTPRequestHandler):
 
 
 class ThreadedServer(HTTPServer):
-    def __init__(self):
-        super().__init__(('', PORT_NUMBER), myHandler)
+    def __init__(self, enabled):
+        self.enabled = enabled
+        if self.enabled:
+            super().__init__(('', PORT_NUMBER), myHandler)
 
-        self.thread = Thread(target=self.serve_forever)
-        self.thread.daemon = True
-        self.thread.start()
+            self.thread = Thread(target=self.serve_forever)
+            self.thread.daemon = True
+            self.thread.start()
 
     def get_next_command(self) -> Optional[str]:
-        if not command_queue.empty():
+        if not command_queue.empty() and self.enabled:
             return command_queue.get_nowait()
         return None
 
-    def stop_server(self):
-        self.socket.close()
-        self.thread.join()
+    def close(self):
+        if self.enabled:
+            print("stopping http socket")
+            self.socket.close()
+            print("stopping http thread")
+            self.thread.join()
 
 
 # if use_multi_threaded_server:

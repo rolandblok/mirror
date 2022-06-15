@@ -46,7 +46,8 @@ else:
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
 ENABLE_SERIAL = False
-ENABLE_SCREEN = True
+ENABLE_SCREEN = False
+ENABLE_HTTP = False
 
 print(f'Argumenent {sys.argv[0]}')
 if len(sys.argv) > 1:
@@ -99,7 +100,7 @@ my_mirror_move = MyMirrorMove(my_serial)
 my_active_facepoints = MyActiveFacepoints()
 my_scenario_player = MyScenarioPlayer(my_mirror_move, my_camera_to_mirror, my_active_facepoints)
 my_face_detector = MyFaceDetector(ENABLE_FACE_DETECTION)
-my_http_server = ThreadedServer()
+my_http_server = ThreadedServer(ENABLE_HTTP)
 
 # =================
 # CAMERA RS ENABLING
@@ -191,7 +192,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     if (ENABLE_RS_FEED):
         frameset = pipeline.poll_for_frames()
         if frameset.size() > 0:
-            frameset = aligner.process(frameset)
+            # frameset = aligner.process(frameset)
             depth_frame = frameset.get_depth_frame()
             color_frame = frameset.get_color_frame()
             if not depth_frame or not color_frame:
@@ -487,6 +488,7 @@ if ENABLE_SCREEN:
     cv2.destroyAllWindows()
 my_serial.close()
 my_face_detector.close()
+my_http_server.close()
 # time.sleep(1)
 # exit(0)
 if (ENABLE_RS_FEED):
