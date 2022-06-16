@@ -133,7 +133,7 @@ if ENABLE_RS_FEED:
     pipeline.start(config)
     depth_intrinsics = rs.video_stream_profile(pipeline.get_active_profile().get_stream(rs.stream.depth)).get_intrinsics()
 
-    aligner = rs.align(rs.stream.color)
+    # aligner = rs.align(rs.stream.color)
 
     print("pipeline started")
 
@@ -245,6 +245,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             #     cv2.putText(color_image_disp, "FMI {} : {:.2f},{:.2f}".format(glb_active_mirror,mir_angles[0], mir_angles[1]), (20, 70), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
             cv2.putText(color_image_disp, "MIR {} : {:.2f},{:.2f}".format(glb_active_mirror,glb_active_mirror_cur_angles[0], glb_active_mirror_cur_angles[1]), (20, 85), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (100,100,255), thickness=1 )
             cv_draw_mirrors(cv2, color_image_disp, STREAM_WIDTH, STREAM_HEIGHT)
+            cv_draw_mirrors(cv2, depth_colormap_disp, STREAM_WIDTH, STREAM_HEIGHT)
 
             rs_image = np.hstack((color_image_disp, depth_colormap_disp))
             if ENABLE_SCREEN:
