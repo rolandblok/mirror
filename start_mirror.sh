@@ -13,8 +13,4 @@ do
 done
 
 # python narcissus.py
-
-
-
-
-
+# add to crontab : @reboot /home/pi/mirror/start_mirror.sh > /home/pi/crontab_mirror_out.txt
