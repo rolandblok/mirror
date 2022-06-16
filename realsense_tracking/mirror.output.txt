@@ -1,0 +1,74 @@
+opencv version : 4.5.5
+Argumenent narcissus.py
+com ports
+  USB Serial /dev/ttyUSB0
+  ttyAMA0 /dev/ttyAMA0
+serial connected : Boot Narcissus Started
+
+pipeline started
+ FPS 59999 ; faces : 
+
+new fp with dist2_m2 0.00 258.00,311.00
+ FPS 3 ; faces : 
+switching scenarios 1
+ScenarioTimedClosest_1_Person active
+line 0 activation  
+connect mirror 0 for face 1 to 1 
+ FPS 9 ; faces : 1
+line 1 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+line 2 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+line 3 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+connect mirror 4 for face 1 to 1 
+line 4 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+connect mirror 4 for face 1 to 1 
+connect mirror 6 for face 1 to 1 
+line 5 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+connect mirror 4 for face 1 to 1 
+connect mirror 6 for face 1 to 1 
+connect mirror 3 for face 1 to 1 
+line 6 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+connect mirror 4 for face 1 to 1 
+connect mirror 6 for face 1 to 1 
+connect mirror 3 for face 1 to 1 
+connect mirror 2 for face 1 to 1 
+line 7 activation  
+connect mirror 0 for face 1 to 1 
+connect mirror 5 for face 1 to 1 
+connect mirror 1 for face 1 to 1 
+connect mirror 4 for face 1 to 1 
+connect mirror 6 for face 1 to 1 
+connect mirror 3 for face 1 to 1 
+connect mirror 2 for face 1 to 1 
+connect mirror 7 for face 1 to 1 
+ FPS 8 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 7 ; faces : 1
+ FPS 8 ; faces : 1
+console key q
+quiting
+Stop streaming
+stopping http socket
+stopping http thread
