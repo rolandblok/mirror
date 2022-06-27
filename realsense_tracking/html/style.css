@@ -1,0 +1,64 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+
+
+.block100 {
+  display: block;
+  width: 95%;
+  border: none;
+  background-color: #04AA6D;
+  color: white;
+  margin: 14px 12px;
+  padding: 14px 28px;
+  font-size: 40px;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+}
+
+.block100:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+.block50 {
+  display: block;
+  width: 45%;
+  border: none;
+  background-color: #04AA6D;
+  color: white;
+  margin: 14px 12px;
+  padding: 14px 28px;
+  font-size: 40px;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+}
+
+.block50:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+.block33 {
+  display: block;
+  width: 30%;
+  border: none;
+  background-color: #04AA6D;
+  color: white;
+  margin: 14px 12px;
+  padding: 14px 28px;
+  font-size: 40px;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+}
+
+.block33:hover {
+  background-color: #ddd;
+  color: black;
+}

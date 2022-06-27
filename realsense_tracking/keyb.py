@@ -26,9 +26,12 @@ else:
 
 class KBHit:
     
-    def __init__(self):
+    def __init__(self, real_mode):
         '''Creates a KBHit object that you can call to do various keyboard things.
         '''
+        self.real_mode = real_mode
+        if not self.real_mode:
+            return
 
         if os.name == 'nt':
             pass
@@ -51,6 +54,8 @@ class KBHit:
     def set_normal_term(self):
         ''' Resets to normal terminal.  On Windows this is a no-op.
         '''
+        if not self.real_mode:
+            return
         
         if os.name == 'nt':
             pass
@@ -63,7 +68,11 @@ class KBHit:
         ''' Returns a keyboard character after kbhit() has been called.
             Should not be called in the same program as getarrow().
         '''
-        
+
+        if not self.real_mode:
+            return
+
+
         s = ''
         
         if os.name == 'nt':
@@ -81,7 +90,11 @@ class KBHit:
         3 : left
         Should not be called in the same program as getch().
         '''
-        
+
+        if not self.real_mode:
+            return
+
+
         if os.name == 'nt':
             msvcrt.getch() # skip 0xE0
             c = msvcrt.getch()
@@ -97,6 +110,11 @@ class KBHit:
     def kbhit(self):
         ''' Returns True if keyboard character was hit, False otherwise.
         '''
+
+        if not self.real_mode:
+            return False
+
+
         if os.name == 'nt':
             return msvcrt.kbhit()
         
@@ -108,7 +126,7 @@ class KBHit:
 # Test    
 if __name__ == "__main__":
     
-    kb = KBHit()
+    kb = KBHit(True)
 
     print('Hit any key, or ESC to exit')
 

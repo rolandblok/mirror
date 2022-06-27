@@ -19,10 +19,11 @@ class MyScenarioPlayer:
         if self._manual:
             self.active_scenario = ScenarioBase(self._my_mirrors, self._my_afps)
         else :
-            self.active_scenario = None
+            self.active_scenario = ScenarioZeroPersons(self._my_mirrors, self._my_afps)
 
     def set_manual_target(self, mirror, face_id_1, face_id_2):
         self.active_scenario.set_tracking(mirror, face_id_1, face_id_2)
+        
     def set_manual_reset(self, mirror):
         self.active_scenario.reset_tracking(mirror )
 
@@ -64,8 +65,9 @@ class ScenarioBase:
     def get_active_time_s(self):
         return perf_counter() - self.start_time
 
-    def set_tracking(self, mirror, face_id_1, face_id_2):
-        self.my_mirrors.set_tracking(mirror, face_id_1, face_id_2)
+    def set_tracking(self, mirror, face_1, face_2):
+        self.my_mirrors.set_tracking(mirror, self.afps[face_1].id, self.afps[face_2].id)
+
     def reset_tracking(self, mirror):
         self.my_mirrors.reset_tracking(mirror)
     
@@ -327,14 +329,14 @@ class ScenarioTimedClosest_2_Person(ScenarioTimedClosest):
         super().__init__(my_mirrors, afps)
         print("ScenarioTimedClosest_2_Person active")
 
-        self.append(2.0, [[ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
-        self.append(0.6, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
-        self.append(0.4, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
-        self.append(0.2, [[ 0, 1], [-1,-1], [ 0, 1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [-1,-1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
+        self.append(0.1, [[ 0, 1], [-1,-1], [ 0, 1], [ 0, 1], [-1,-1], [ 0, 1], [-1,-1], [-1,-1 ]] )
         self.append(0.1, [[ 0, 1], [-1,-1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1], [-1,-1 ]] )
         self.append(0.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1], [-1,-1 ]] )
         self.append(0.1, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [-1,-1 ]] )
-        self.append(4.0, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1 ]], True )
+        self.append(14.0, [[ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1], [ 0, 1 ]], True )
         self.append(4.0, [[ 0, 1], [ 0, 0], [ 0, 1], [ 0, 1], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 1 ]] )
         self.append(3.8, [[ 0, 1], [ 0, 0], [ 1, 1], [ 0, 1], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 0 ]] )
         self.append(2.4, [[ 0, 1], [ 0, 0], [ 1, 1], [ 0, 0], [ 0, 1], [ 1, 1], [ 0, 1], [ 0, 0 ]] )

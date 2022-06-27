@@ -26,9 +26,9 @@ class myHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             query = urlparse(self.path)
             user_data = parse_qs(query.query)
-            print(user_data)
-            command_queue.put(user_data['command'][0])
-            pass
+            for command in user_data['command']:
+                print("HTTP command received : " + command)
+                command_queue.put(command)
         else:
             try:
                 sendReply = False
@@ -51,6 +51,7 @@ class myHandler(BaseHTTPRequestHandler):
                 if sendReply == True:
                     #Open the static file requested and send it
                     file_to_send = self.path
+                    print("HTTP request received " + file_to_send)
                     if file_to_send == "/":
                         file_to_send = "index.html"
                     with open(curdir + sep + "html/" + file_to_send) as f:
@@ -83,7 +84,7 @@ class ThreadedServer(HTTPServer):
             print("stopping http socket")
             self.socket.close()
             print("stopping http thread")
-            self.thread.join()
+            # self.thread.join()
 
 
 # if use_multi_threaded_server:

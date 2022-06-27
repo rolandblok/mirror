@@ -45,13 +45,17 @@ else:
 
 ENABLE_RS_FEED = True
 ENABLE_FACE_DETECTION = DetectorType.FACE_DETECTION_MEDIAPIPE
-ENABLE_SERIAL = False
+ENABLE_SERIAL = True
 ENABLE_SCREEN = False
-ENABLE_HTTP = False
+ENABLE_HTTP = True
+ENABLE_TERMINAL = True   # needed false for crontab process where no keyboard present
 
-print(f'Argumenent {sys.argv[0]}')
-if len(sys.argv) > 1:
-    ENABLE_SCREEN = True
+for arg in sys.argv:
+    print(f'Argumenent {arg}')
+    if arg == "noterm":
+        ENABLE_TERMINAL = False
+    if arg == "screen":
+        ENABLE_SCREEN = True
 
 
 FACE_FOLLOW_IDLE_TIME_NS = 2e9 # (n)seconds
@@ -81,8 +85,8 @@ mouse_btns = [False, False, False]
 mouse_prev = [0, 0]
 
 keyboard_mirror_selection_active = False
-keyboard_manual_selection = [0,0,0]  # mirror, face_id, face_id
-keyboard_manual_selection_pos = 0    # possition to fill array above
+keyboard_face_selection = [0,0,0]  # mirror, face_id, face_id
+keyboard_face_selection_pos = 0    # possition to fill array above
 keyboard_manual_connection_active = False    # possition to fill array above
 
 my_fps_rs = MyFPS(30)
@@ -168,8 +172,9 @@ def my_mouse(event,x,y,flags,param):
             pass
         elif mouse_btns[2]:
             pass
-        
-keyboard = KBHit()
+
+
+keyboard = KBHit(ENABLE_TERMINAL)
 
 # ========================
 # open window and callbacks
@@ -301,11 +306,11 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(f" FPS {my_fps_rs.get_fps():.0f} ; faces : {active_faces_str}")
             my_fps_last_s = time.perf_counter()
 
-    httpkey = my_http_server.get_next_command()
-    httpkey_set = (httpkey is not None)
 
     # ==================
     #  interaction
+    httpkey = my_http_server.get_next_command()
+    httpkey_set = (httpkey is not None)
     cnskey = -1
     if keyboard.kbhit():
         cnskey = keyboard.getch()
@@ -333,25 +338,26 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             else:
                 print("keyboard_manual_connection not done")
             keyboard_manual_connection_active = False        
-        elif (keyboard_mirror_selection_active):    
+        elif (keyboard_mirror_selection_active): 
+            print(f"Mirror selected : {key}" )   
             if follow_mode == FollowMode.MANUAL or follow_mode == FollowMode.SCENARIO:
                 if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3'))  or 
                     (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7')) or 
                     (key == ('8')) or (key == ('9'))                                         ) :
-                    keyboard_manual_selection[keyboard_manual_selection_pos] = int(key)
-                    keyboard_manual_selection_pos += 1
-                    if keyboard_manual_selection_pos == 3:
-                        my_scenario_player.set_manual_target(*keyboard_manual_selection)
+                    keyboard_face_selection[keyboard_face_selection_pos] = int(key)
+                    keyboard_face_selection_pos += 1
+                    if keyboard_face_selection_pos == 3:
+                        my_scenario_player.set_manual_target(*keyboard_face_selection)
                         keyboard_mirror_selection_active = False
-                        keyboard_manual_selection_pos = 0
+                        keyboard_face_selection_pos = 0
                 elif key == 'r':
-                    if keyboard_manual_selection_pos > 0:
-                        my_scenario_player.set_manual_reset(keyboard_manual_selection[0])
+                    if keyboard_face_selection_pos > 0:
+                        my_scenario_player.set_manual_reset(keyboard_face_selection[0])
                     keyboard_mirror_selection_active = False
-                    keyboard_manual_selection_pos = 0
+                    keyboard_face_selection_pos = 0
                 else:
                     keyboard_mirror_selection_active = False
-                    keyboard_manual_selection_pos = 0
+                    keyboard_face_selection_pos = 0
             else:
                 if ((key == ('0')) or (key == ('1')) or (key == ('2')) or (key == ('3')) or 
                     (key == ('4')) or (key == ('5')) or (key == ('6'))  or (key == ('7'))   ) :
@@ -425,7 +431,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
         elif (key == ('m')):
             print("mirror selection active")
             keyboard_mirror_selection_active = True
-            keyboard_manual_selection_pos = 0
+            keyboard_face_selection_pos = 0
         elif (key == ('n')):
             print("press number for mirror connection ")
             keyboard_manual_connection_active = True
@@ -479,7 +485,7 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             print(" V : zero active mirror to your face")
 
     
-        
+    sys.stdout.flush()  # need to flush stdout to be able to pipe to file and tail https://stackoverflow.com/questions/1429951/force-flushing-of-output-to-a-file-while-bash-script-is-still-running
 
 
 #///////// 
