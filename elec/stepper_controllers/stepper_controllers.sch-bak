@@ -1,0 +1,464 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A3 16535 11693
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L teensy:Teensy4.1 U?
+U 1 1 62BAE980
+P 5750 2100
+F 0 "U?" V 5704 4528 50  0000 L CNN
+F 1 "Teensy4.1" V 5795 4528 50  0000 L CNN
+F 2 "" H 5350 2500 50  0001 C CNN
+F 3 "" H 5350 2500 50  0001 C CNN
+	1    5750 2100
+	0    1    1    0   
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BB2182
+P 5350 5200
+F 0 "A?" H 5400 6081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 5400 5990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 5625 4450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 5450 4900 50  0001 C CNN
+	1    5350 5200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BB76DE
+P 6800 5200
+F 0 "A?" H 6850 6081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 6850 5990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 7075 4450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 6900 4900 50  0001 C CNN
+	1    6800 5200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BB8747
+P 8100 5150
+F 0 "A?" H 8150 6031 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 8150 5940 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 8375 4400 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 8200 4850 50  0001 C CNN
+	1    8100 5150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BBE03C
+P 9400 5100
+F 0 "A?" H 9450 5981 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 9450 5890 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 9675 4350 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 9500 4800 50  0001 C CNN
+	1    9400 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BBE51E
+P 10650 5100
+F 0 "A?" H 10700 5981 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 10700 5890 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 10925 4350 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 10750 4800 50  0001 C CNN
+	1    10650 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BBEC8B
+P 11900 5100
+F 0 "A?" H 11950 5981 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 11950 5890 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 12175 4350 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 12000 4800 50  0001 C CNN
+	1    11900 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BBF783
+P 5400 7200
+F 0 "A?" H 5450 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 5450 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 5675 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 5500 6900 50  0001 C CNN
+	1    5400 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC16A1
+P 6800 7200
+F 0 "A?" H 6850 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 6850 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 7075 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 6900 6900 50  0001 C CNN
+	1    6800 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC1BF3
+P 8150 7200
+F 0 "A?" H 8200 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 8200 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 8425 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 8250 6900 50  0001 C CNN
+	1    8150 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC223B
+P 9500 7200
+F 0 "A?" H 9550 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 9550 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 9775 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 9600 6900 50  0001 C CNN
+	1    9500 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC2714
+P 10850 7200
+F 0 "A?" H 10900 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 10900 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 11125 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 10950 6900 50  0001 C CNN
+	1    10850 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC2DCD
+P 11900 7200
+F 0 "A?" H 11950 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 11950 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 12175 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 12000 6900 50  0001 C CNN
+	1    11900 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC331A
+P 13250 5100
+F 0 "A?" H 13300 5981 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 13300 5890 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 13525 4350 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 13350 4800 50  0001 C CNN
+	1    13250 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC3AD7
+P 14450 5100
+F 0 "A?" H 14500 5981 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 14500 5890 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 14725 4350 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 14550 4800 50  0001 C CNN
+	1    14450 5100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC4171
+P 13300 7200
+F 0 "A?" H 13350 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 13350 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 13575 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 13400 6900 50  0001 C CNN
+	1    13300 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Driver_Motor:Pololu_Breakout_A4988 A?
+U 1 1 62BC4751
+P 14450 7200
+F 0 "A?" H 14500 8081 50  0000 C CNN
+F 1 "Pololu_Breakout_A4988" H 14500 7990 50  0000 C CNN
+F 2 "Module:Pololu_Breakout-16_15.2x20.3mm" H 14725 6450 50  0001 L CNN
+F 3 "https://www.pololu.com/product/2980/pictures" H 14550 6900 50  0001 C CNN
+	1    14450 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R?
+U 1 1 62BC743A
+P 2400 4050
+F 0 "R?" H 2470 4096 50  0000 L CNN
+F 1 "10k" H 2470 4005 50  0000 L CNN
+F 2 "" V 2330 4050 50  0001 C CNN
+F 3 "~" H 2400 4050 50  0001 C CNN
+	1    2400 4050
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Barrel_Jack J?
+U 1 1 62BC89ED
+P 1400 6900
+F 0 "J?" H 1457 7225 50  0000 C CNN
+F 1 "Barrel_Jack" H 1457 7134 50  0000 C CNN
+F 2 "" H 1450 6860 50  0001 C CNN
+F 3 "~" H 1450 6860 50  0001 C CNN
+	1    1400 6900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:CP C?
+U 1 1 62BCEDA6
+P 2550 7050
+F 0 "C?" H 2668 7096 50  0000 L CNN
+F 1 "CP" H 2668 7005 50  0000 L CNN
+F 2 "" H 2588 6900 50  0001 C CNN
+F 3 "~" H 2550 7050 50  0001 C CNN
+	1    2550 7050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1700 7000 1950 7200
+Wire Wire Line
+	1950 7200 2550 7200
+Wire Wire Line
+	5350 6000 5450 6150
+Wire Wire Line
+	5450 6150 4300 6150
+Wire Wire Line
+	4300 6150 4300 6550
+Wire Wire Line
+	4300 6550 2550 7200
+Connection ~ 2550 7200
+Wire Wire Line
+	6800 6000 6800 6150
+Wire Wire Line
+	6800 6150 5650 6150
+Connection ~ 5450 6150
+Wire Wire Line
+	8100 5950 8100 6150
+Wire Wire Line
+	8100 6150 7000 6150
+Connection ~ 6800 6150
+Wire Wire Line
+	9400 5900 9400 6150
+Wire Wire Line
+	9400 6150 8300 6150
+Connection ~ 8100 6150
+Wire Wire Line
+	10650 5900 10650 6150
+Wire Wire Line
+	10650 6150 9600 6150
+Connection ~ 9400 6150
+Wire Wire Line
+	11900 5900 11900 6150
+Wire Wire Line
+	11900 6150 10850 6150
+Connection ~ 10650 6150
+Wire Wire Line
+	13250 5900 13250 6150
+Wire Wire Line
+	13250 6150 12100 6150
+Connection ~ 11900 6150
+Wire Wire Line
+	14450 5900 14450 6150
+Wire Wire Line
+	14450 6150 13450 6150
+Connection ~ 13250 6150
+Wire Wire Line
+	13450 5900 13450 6150
+Connection ~ 13450 6150
+Wire Wire Line
+	13450 6150 13250 6150
+Wire Wire Line
+	14650 5900 14650 6150
+Wire Wire Line
+	14650 6150 14450 6150
+Connection ~ 14450 6150
+Wire Wire Line
+	12100 5900 12100 6150
+Connection ~ 12100 6150
+Wire Wire Line
+	12100 6150 11900 6150
+Wire Wire Line
+	10850 5900 10850 6150
+Connection ~ 10850 6150
+Wire Wire Line
+	10850 6150 10650 6150
+Wire Wire Line
+	9600 5900 9600 6150
+Connection ~ 9600 6150
+Wire Wire Line
+	9600 6150 9400 6150
+Wire Wire Line
+	8300 5950 8300 6150
+Connection ~ 8300 6150
+Wire Wire Line
+	8300 6150 8100 6150
+Wire Wire Line
+	7000 6000 7000 6150
+Connection ~ 7000 6150
+Wire Wire Line
+	7000 6150 6800 6150
+Wire Wire Line
+	5550 6000 5650 6150
+Connection ~ 5650 6150
+Wire Wire Line
+	5650 6150 5450 6150
+Wire Wire Line
+	5400 8000 5400 8200
+Wire Wire Line
+	5400 8200 4300 8200
+Wire Wire Line
+	4300 8200 4300 6550
+Connection ~ 4300 6550
+Wire Wire Line
+	6800 8000 6900 8200
+Wire Wire Line
+	6900 8200 5600 8200
+Connection ~ 5400 8200
+Wire Wire Line
+	5600 8000 5600 8200
+Connection ~ 5600 8200
+Wire Wire Line
+	5600 8200 5400 8200
+Wire Wire Line
+	7000 8000 7100 8200
+Wire Wire Line
+	7100 8200 6900 8200
+Connection ~ 6900 8200
+Wire Wire Line
+	8150 8000 8200 8200
+Wire Wire Line
+	8200 8200 7100 8200
+Connection ~ 7100 8200
+Wire Wire Line
+	8350 8000 8400 8200
+Wire Wire Line
+	8400 8200 8200 8200
+Connection ~ 8200 8200
+Wire Wire Line
+	9500 8000 9500 8200
+Wire Wire Line
+	9500 8200 8400 8200
+Connection ~ 8400 8200
+Wire Wire Line
+	9700 8000 9700 8200
+Wire Wire Line
+	9700 8200 9500 8200
+Connection ~ 9500 8200
+Wire Wire Line
+	10850 8000 10850 8200
+Wire Wire Line
+	10850 8200 9700 8200
+Connection ~ 9700 8200
+Wire Wire Line
+	11050 8000 11050 8200
+Wire Wire Line
+	11050 8200 10850 8200
+Connection ~ 10850 8200
+Wire Wire Line
+	11900 8000 11900 8200
+Wire Wire Line
+	11900 8200 11050 8200
+Connection ~ 11050 8200
+Wire Wire Line
+	12100 8000 12100 8200
+Wire Wire Line
+	12100 8200 11900 8200
+Connection ~ 11900 8200
+Wire Wire Line
+	13300 8000 13300 8200
+Wire Wire Line
+	13300 8200 12100 8200
+Connection ~ 12100 8200
+Wire Wire Line
+	13500 8000 13500 8200
+Wire Wire Line
+	13500 8200 13300 8200
+Connection ~ 13300 8200
+Wire Wire Line
+	14450 8000 14450 8200
+Wire Wire Line
+	14450 8200 13500 8200
+Connection ~ 13500 8200
+Wire Wire Line
+	14650 8000 14650 8200
+Wire Wire Line
+	14650 8200 14450 8200
+Connection ~ 14450 8200
+Wire Wire Line
+	2550 6900 3850 4300
+Wire Wire Line
+	3850 4300 5650 4300
+Wire Wire Line
+	5650 4300 5550 4500
+Wire Wire Line
+	7000 4500 7000 4300
+Wire Wire Line
+	7000 4300 5650 4300
+Connection ~ 5650 4300
+Wire Wire Line
+	8300 4450 8300 4300
+Wire Wire Line
+	8300 4300 7000 4300
+Connection ~ 7000 4300
+Wire Wire Line
+	9600 4400 9600 4300
+Wire Wire Line
+	9600 4300 8300 4300
+Connection ~ 8300 4300
+Wire Wire Line
+	10850 4400 10850 4300
+Wire Wire Line
+	10850 4300 9600 4300
+Connection ~ 9600 4300
+Wire Wire Line
+	12100 4400 12100 4300
+Wire Wire Line
+	12100 4300 10850 4300
+Connection ~ 10850 4300
+Wire Wire Line
+	13450 4400 13450 4300
+Wire Wire Line
+	13450 4300 12100 4300
+Connection ~ 12100 4300
+Wire Wire Line
+	14650 4400 14650 4300
+Wire Wire Line
+	14650 4300 13450 4300
+Connection ~ 13450 4300
+Connection ~ 2550 6900
+Wire Wire Line
+	2550 6650 2550 6900
+Wire Wire Line
+	1950 6700 2550 6650
+Wire Wire Line
+	1700 6800 1950 6700
+Wire Wire Line
+	650  7400 2550 7400
+Wire Wire Line
+	2550 7400 2550 7200
+Wire Wire Line
+	7800 3200 7800 3550
+Wire Wire Line
+	7800 3550 650  3550
+Wire Wire Line
+	650  3550 650  7400
+$EndSCHEMATC
