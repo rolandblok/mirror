@@ -86,7 +86,7 @@ void serial_loop() {
     } else if (ser_command.startsWith("s")) {
         sinus_move = !sinus_move;
     } else {         
-      Serial.println("unknown command " + String(ser_command));
+      Serial.println("? " + String(ser_command));
 
     
 //        Serial.println("commands: ");

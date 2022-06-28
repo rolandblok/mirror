@@ -59,7 +59,7 @@ void MySteppers::loop(void)
     {
       if (!digitalRead(SWITCH_PINS[s]))
       {
-        Serial.println("endstop " + String(s) + " triggered, stop");
+        Serial.println("ES " + String(s) + " stop");
         error_state = true;
         return;
       }
@@ -142,7 +142,7 @@ bool MySteppers::home_stepper(int s)
   int s2 = other_stepper(s);
   if (!digitalRead(SWITCH_PINS[s2]))
   {
-    Serial.println("@homing " + String(s) + " stepper " + String(s2) + " switch. NOK.");
+    Serial.println("@homing " + String(s) + " s " + String(s2) + " NOK.");
     error_state = true;
     return false;
   }
@@ -175,7 +175,7 @@ bool MySteppers::home_stepper(int s)
     {
       home_states[s] = HOMED;
       steppers[s].setCurrentPosition(0);
-      Serial.println("s " + String(s) + " homed");
+      Serial.println("s " + String(s) + " H");
 
       return true;
     }
