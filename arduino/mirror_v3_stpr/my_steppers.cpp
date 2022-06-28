@@ -10,8 +10,8 @@
 // Smooth Moving.
 #define HOME_STEPS      (1000)
 #define HOME_BACK_STEPS (360)
-#define WORK_ACCEL (250e-6)   
-#define WORK_SPEED (500e-3)   
+#define WORK_ACCEL (1600)   
+#define WORK_SPEED (1600)   
 #define HOME_ACCEL (400)      
 #define HOME_SPEED (100)      
 
@@ -143,7 +143,9 @@ bool MySteppers::home_stepper(int s) {
       steppers[s].run();
     } else {
       home_states[s] = HOMED;
+      steppers[s].setCurrentPosition(0);
       Serial.println("s " + String(s) + " homed");
+      
       digitalWrite(LED_BUILTIN, LOW);
       return true;
     }
