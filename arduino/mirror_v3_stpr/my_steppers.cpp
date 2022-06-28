@@ -15,10 +15,11 @@
 #define HOME_ACCEL (400)      
 #define HOME_SPEED (100)      
 
-const int STEP_PINS[NO_STEPPERS]    = {2,5,8,11,14,17,20,23};
-const int DIR_PINS[NO_STEPPERS]     = {3,6,9,12,15,18,21,24};
-const int SWITCH_PINS[NO_STEPPERS]  = {4,7,10,13,16,19,22,25};
-
+//                                      0 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+const int DIR_PINS[NO_STEPPERS]     = { 2,5, 8,11,14,17,20,23,26,29,32,35,38,41,44,47};
+const int STEP_PINS[NO_STEPPERS]    = { 3,6, 9,12,15,18,21,24,27,30,33,36,39,42,45,48};
+const int SWITCH_PINS[NO_STEPPERS]  = { 4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49};
+const int ENABLE_PIN  = 50;
 
 MySteppers::MySteppers() {
   for (int s = 0; s < NO_STEPPERS; s++) {
