@@ -5,7 +5,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <AccelStepper.h>
+#include "AccelStepper.h"
 
 typedef enum HomeStates {IDLE = 0, SEARCHING, MOVEBACK, HOMED} HomeStates;
 

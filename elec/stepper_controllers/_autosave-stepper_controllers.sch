@@ -798,4 +798,15 @@ F 3 "~" H 2950 2500 50  0001 C CNN
 	1    2950 2500
 	1    0    0    -1  
 $EndComp
+$Comp
+L stepper_controllers-rescue:Teensy4.1-teensy U?
+U 1 1 62C008D8
+P 5850 3100
+F 0 "U?" V 5804 5528 50  0000 L CNN
+F 1 "Teensy4.1-teensy" V 5895 5528 50  0000 L CNN
+F 2 "" H 5450 3500 50  0001 C CNN
+F 3 "" H 5450 3500 50  0001 C CNN
+	1    5850 3100
+	0    1    1    0   
+$EndComp
 $EndSCHEMATC
