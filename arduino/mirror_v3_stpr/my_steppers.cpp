@@ -11,17 +11,21 @@
 #define HOME_BACK_STEPS (360)
 #define WORK_ACCEL (1600)
 #define WORK_SPEED (1600)
-#define HOME_ACCEL (400)
-#define HOME_SPEED (100)
+#define HOME_ACCEL (200)
+#define HOME_SPEED (400)
 
 //                                      0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
-const int DIR_PINS[NO_STEPPERS] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
-const int STEP_PINS[NO_STEPPERS] = {3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33};
-const int SWITCH_PINS[NO_STEPPERS] = {34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48};
-const int ENABLE_PIN = 49;
+const int DIR_PINS[NO_STEPPERS] = {2, 4};//, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32};
+const int STEP_PINS[NO_STEPPERS] = {3, 5};//, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33};
+const int SWITCH_PINS[NO_STEPPERS] = {6,7};//{34, 35, 36, 37, 38, 39, 40, 41, 42, 42, 43, 44, 45, 46, 47, 48};
+const int ENABLE_PIN = 24;
+
+
 
 MySteppers::MySteppers()
 {
+  pinMode(ENABLE_PIN, OUTPUT); 
+  digitalWrite(ENABLE_PIN, LOW); 
   for (int s = 0; s < NO_STEPPERS; s++)
   {
     steppers[s] = AccelStepper(AccelStepper::DRIVER, STEP_PINS[s], DIR_PINS[s]);
@@ -33,6 +37,7 @@ MySteppers::MySteppers()
 
     home_states[s] = IDLE;
   }
+
 }
 
 /**
@@ -42,8 +47,10 @@ MySteppers::MySteppers()
  */
 void MySteppers::loop(void)
 {
+  
   if (error_state)
   {
+
     return;
   }
 
@@ -52,6 +59,7 @@ void MySteppers::loop(void)
   {
     homed = homed && (home_states[s] == HOMED);
   }
+
 
   if (homed)
   {
@@ -65,17 +73,13 @@ void MySteppers::loop(void)
       }
       steppers[s].run();
     }
-  }
-  else
-  {
+  } else {
     for (int s = 0; s < NO_STEPPERS; s += 2)
     {
       if (home_states[s] != HOMED)
       {
         home_stepper(s);
-      }
-      else
-      {
+      } else {
         home_stepper(s + 1);
       }
     }
@@ -98,9 +102,7 @@ void MySteppers::set_target(int s, float angle)
   if (angle > STEPPER_ANGLE_MAX)
   {
     angle = STEPPER_ANGLE_MAX;
-  }
-  else if (angle < STEPPER_ANGLE_MIN)
-  {
+  } else if (angle < STEPPER_ANGLE_MIN) {
     angle = STEPPER_ANGLE_MIN;
   }
   steppers[s].moveTo(angle);
@@ -112,6 +114,7 @@ void MySteppers::set_target(int s, float angle)
  */
 void MySteppers::start_homing()
 {
+  Serial.println("start homeing");
   for (int s = 0; s < NO_STEPPERS; s++)
   {
     home_states[s] = SEARCHING;
@@ -142,7 +145,7 @@ bool MySteppers::home_stepper(int s)
   int s2 = other_stepper(s);
   if (!digitalRead(SWITCH_PINS[s2]))
   {
-    Serial.println("@homing " + String(s) + " s " + String(s2) + " NOK.");
+    Serial.println("@homing : trigger " + String(s2) + " during homing " + String(s) + " NOK:error");
     error_state = true;
     return false;
   }
@@ -151,22 +154,19 @@ bool MySteppers::home_stepper(int s)
   {
     if (!digitalRead(SWITCH_PINS[s]))
     {
+      Serial.println("homed " + String(s) + " , move back");
       home_states[s] = MOVEBACK;
       steppers[s].setMaxSpeed(WORK_SPEED);
       steppers[s].setAcceleration(WORK_ACCEL);
       steppers[s].move(-HOME_BACK_STEPS);
-    }
-    else if (steppers[s].isRunning())
-    {
+      
+    } else if (steppers[s].isRunning()) {
       steppers[s].run();
-    }
-    else
-    {
+      
+    } else {
       steppers[s].move(HOME_STEPS);
     }
-  }
-  else if (home_states[s] == MOVEBACK)
-  {
+  } else if (home_states[s] == MOVEBACK) {
     if (steppers[s].isRunning())
     {
       steppers[s].run();
@@ -175,7 +175,7 @@ bool MySteppers::home_stepper(int s)
     {
       home_states[s] = HOMED;
       steppers[s].setCurrentPosition(0);
-      Serial.println("s " + String(s) + " H");
+      Serial.println("s " + String(s) + " homed");
 
       return true;
     }
@@ -195,5 +195,5 @@ bool MySteppers::home_stepper(int s)
  */
 int MySteppers::other_stepper(int s)
 {
-  return s + (s % 2 == 1) ? -1 : 1;
+  return s + ((s % 2 == 1) ? -1 : 1);
 }

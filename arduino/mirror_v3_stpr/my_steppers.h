@@ -1,7 +1,7 @@
 #ifndef MY_SMOOTH_SERVO_AA
 #define MY_SMOOTH_SERVO_AA
 
-#define NO_STEPPERS (16)
+#define NO_STEPPERS (2)
 
 #include <Arduino.h>
 #include <Wire.h>

@@ -199,7 +199,6 @@ AccelStepper::AccelStepper(uint8_t interface, uint8_t pin1, uint8_t pin2, uint8_
     _stepInterval = 0;
     _minPulseWidth = 1;
     _enablePin = 0xff;
-    _lastStepTime = 0;
     _pin[0] = pin1;
     _pin[1] = pin2;
     _pin[2] = pin3;

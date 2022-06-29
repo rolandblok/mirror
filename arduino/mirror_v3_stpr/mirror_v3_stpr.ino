@@ -7,7 +7,17 @@
 // PIN 5 : SCL
 // PIN 4 : SDA
 
+
+
+#if defined(TEENSYDUINO) && defined(__AVR__)
+void resetFunc() {
+      #define SCB_AIRCR (*(volatile uint32_t *)0xE000ED0C) // Application Interrupt and Reset Control location
+      Serial.end();  //clears the serial monitor  if used
+      SCB_AIRCR = 0x05FA0004;  //write value for restart
+}
+#else
 void(*resetFunc) (void) = 0; 
+#endif
 
 bool sinus_move = false;
 unsigned long sinus_last_update_ms = 0;
@@ -21,6 +31,7 @@ void serial_loop() {
     String ser_command = Serial.readStringUntil('\n');
     float ser_data[8] = {}; 
     if (ser_command.startsWith("R")) {   // Restart
+        Serial.println ("reboot");
         Serial.end();  //clears the serial monitor  if used
         resetFunc();
         delay(1000);
@@ -51,17 +62,17 @@ void serial_loop() {
     } else if (ser_command.startsWith("m")) {
         selected_mirror = string_read_int(ser_command);
     } else if (ser_command.startsWith("1")) {
-        mirror_set_angle(selected_mirror, 0, -35);
+        mirror_set_angle(selected_mirror, 0, -300);
     } else if (ser_command.startsWith("2")) {
         mirror_set_angle(selected_mirror, 0, 0);
     } else if (ser_command.startsWith("3")) {
-        mirror_set_angle(selected_mirror, 0, 35);
+        mirror_set_angle(selected_mirror, 0, 300);
     } else if (ser_command.startsWith("6")) {
-        mirror_set_angle(selected_mirror, 1, -35);
+        mirror_set_angle(selected_mirror, 1, -300);
     } else if (ser_command.startsWith("5")) {
         mirror_set_angle(selected_mirror, 1, 0);
     } else if (ser_command.startsWith("4")) {
-        mirror_set_angle(selected_mirror, 1, 35);
+        mirror_set_angle(selected_mirror, 1, 300);
     } else if (ser_command.startsWith("o")) {
         mirror_add_angle(selected_mirror, 0, 1);
     } else if (ser_command.startsWith("l")) {
@@ -71,13 +82,13 @@ void serial_loop() {
     } else if (ser_command.startsWith("p")) {
         mirror_add_angle(selected_mirror, 1, -1);
     } else if (ser_command.startsWith("O")) {
-        mirror_add_angle(selected_mirror, 0, 5);
+        mirror_add_angle(selected_mirror, 0, 50);
     } else if (ser_command.startsWith("L")) {
-        mirror_add_angle(selected_mirror, 0, -5);
+        mirror_add_angle(selected_mirror, 0, -50);
     } else if (ser_command.startsWith("I")) {
-        mirror_add_angle(selected_mirror, 1, 5);
+        mirror_add_angle(selected_mirror, 1, 50);
     } else if (ser_command.startsWith("P")) {
-        mirror_add_angle(selected_mirror, 1, -5);
+        mirror_add_angle(selected_mirror, 1, -50);
     } else if (ser_command.startsWith("km")) {
         int mirror = string_read_int(ser_command);
         mirror_serial_print_angles(mirror);
@@ -144,7 +155,7 @@ void loop() {
   serial_loop();
   mirror_loop();
 
-  delay(20);         
+//  delay(20);         
 }
 
 

@@ -50,7 +50,7 @@ void mirrors_set_8angles(int mirror_start, float *angles, bool log_serial){
   }
 }
 
-void mirror_set_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial = true) {
+void mirror_set_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial) {
   for (int a = 0; a < NO_ANGLES_PER_MIRROR; a ++) {
     mirror_set_angle(mirror, a, angles[a], false);
   }
@@ -58,7 +58,7 @@ void mirror_set_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_
     mirror_serial_print_angles(mirror);
   }
 }
-void mirror_set_angle(int mirror, int a, float angle, bool log_serial = true) {
+void mirror_set_angle(int mirror, int a, float angle, bool log_serial) {
   int s = get_stepper(mirror, a);
   my_steppers.set_target(s, angle);
   if (log_serial) {
@@ -66,7 +66,7 @@ void mirror_set_angle(int mirror, int a, float angle, bool log_serial = true) {
   }
 }
 
-void mirror_add_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial = true) {
+void mirror_add_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_serial) {
   for (int a = 0; a < NO_ANGLES_PER_MIRROR; a ++) {
     mirror_add_angle(mirror, a, angles[a], false);
   }
@@ -75,7 +75,7 @@ void mirror_add_angles(int mirror, float angles[NO_ANGLES_PER_MIRROR], bool log_
 
   }
 }
-void mirror_add_angle(int mirror, int a, float angle, bool log_serial = true) {
+void mirror_add_angle(int mirror, int a, float angle, bool log_serial) {
   int s = get_stepper(mirror, a);
   my_steppers.add_target(s, angle);
   if (log_serial) {
