@@ -1,4 +1,4 @@
-from http.server import BaseHTTPRequestHandler,HTTPServer
+from http.server import BaseHTTPRequestHandler,HTTPServer, SimpleHTTPRequestHandler
 from queue import Queue
 from socketserver import ThreadingMixIn
 from threading import Thread
@@ -16,7 +16,11 @@ PORT_NUMBER = 8080   # local web server port number
 
 command_queue = Queue()
 
-class myHandler(BaseHTTPRequestHandler):
+class myHandler(SimpleHTTPRequestHandler):
+
+    # def __init__(self,request, client_address, server, directory):
+    #     directory = curdir + sep + "html/"
+    #     super().__init__(request, client_address, server, directory)
 
     #Handler for the GET requests
     def do_GET(self):
@@ -32,33 +36,42 @@ class myHandler(BaseHTTPRequestHandler):
         else:
             try:
                 sendReply = False
+                read_mode = 'rb'
                 if self.path.endswith(".html") or self.path == "/":
                     mimetype='text/html'
                     sendReply = True
+                    read_mode = 'r'
                 if self.path.endswith(".jpg"):
                     mimetype='image/jpg'
                     sendReply = True
                 if self.path.endswith(".gif"):
                     mimetype='image/gif'
                     sendReply = True
+                if self.path.endswith(".ico"):
+                    mimetype='image/x-icon'
+                    sendReply = True
                 if self.path.endswith(".js"):
                     mimetype='application/javascript'
                     sendReply = True
+                    read_mode = 'r'
                 if self.path.endswith(".css"):
                     mimetype='text/css'
                     sendReply = True
-
+                    read_mode = 'r'
                 if sendReply == True:
                     #Open the static file requested and send it
                     file_to_send = self.path
                     print("HTTP request received " + file_to_send)
                     if file_to_send == "/":
                         file_to_send = "index.html"
-                    with open(curdir + sep + "html/" + file_to_send) as f:
+                    with open(curdir + sep + "html/" + file_to_send, read_mode) as f:
                         self.send_response(200)
-                        self.send_header('Content-type',mimetype)
+                        self.send_header('Content-type', mimetype)
                         self.end_headers()
-                        self.wfile.write(f.read().encode("utf-8"))
+                        if read_mode == 'r':
+                            self.wfile.write(f.read().encode("utf-8"))
+                        else:
+                            self.wfile.write(f.read())
 
             except IOError:
                 self.send_error(404,'File nie gevonde nie: %s' % self.path)

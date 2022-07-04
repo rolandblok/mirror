@@ -5,8 +5,8 @@ import time
 
 FACE_RANGE_M = 40  # same face distance
 FACE_RANGE2_M2 = FACE_RANGE_M*FACE_RANGE_M  # same face distance quadratic
-FACE_MAX_UNSEEN_TIME_S = 1.5  # maximum unseen time for a face: after 2 seconds no detect : remove
-FACE_MIN_AGE_S = FACE_MAX_UNSEEN_TIME_S # minimum age for a face to become active
+FACE_MAX_UNSEEN_TIME_S = 1.5  # maximum unseen time for a face: after x seconds no detect : remove
+FACE_MIN_AGE_S = 0.7 # minimum age for a face to become active
 
 def fp_2str(fp):
     return ",".join(f"{e:.2f}" for e in fp)
