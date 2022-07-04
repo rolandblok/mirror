@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name stepper_controllers-rescue)(type Legacy)(uri ${KIPRJMOD}/stepper_controllers-rescue.lib)(options "")(descr ""))
+  (lib (name arduino)(type Legacy)(uri "C:/Users/rolan/git repos/DOWNLOADS_LIBS/arduino-kicad-library/arduino.lib")(options "")(descr ""))
+)
