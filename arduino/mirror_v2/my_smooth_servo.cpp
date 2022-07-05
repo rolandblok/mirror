@@ -4,11 +4,11 @@
 
 //https://rootsaid.com/pca9685-servo-driver/
 
-#define SERVOMIN  (150) // This is the 'minimum' pulse length count (out of 4096)
-#define SERVOMAX  (600) // This is the 'maximum' pulse length count (out of 4096)
+#define SERVOMIN  (2*150) // This is the 'minimum' pulse length count (out of 4096)
+#define SERVOMAX  (2*600) // This is the 'maximum' pulse length count (out of 4096)
 #define USMIN  (600) // This is the rounded 'minimum' microsecond length based on the minimum pulse of 150
 #define USMAX  (2400) // This is the rounded 'maximum' microsecond length based on the maximum pulse of 600
-#define SERVO_FREQ (50) // Analog servos run at ~50 Hz updates
+#define SERVO_FREQ (2*50) // Analog servos run at ~50 Hz updates
 
 #define SERVO_ANGLE_MIN  (-40)
 #define SERVO_ANGLE_MAX  ( 40)
@@ -60,6 +60,10 @@ void MySmoothServo::loop(void) {
         }
         actuate_angle(s);
 //        Serial.println(String(s) + " "  + String(target_angles[s]) +" " + String(cur_angles[s]) +" " + String(cur_speeds[s]) );
+      } else if (abs (err) > 0.1) {
+        cur_speeds[s] = 0;
+        cur_angles[s] = target_angles[s];
+        actuate_angle(s);
       } else {
         cur_speeds[s] = 0;
         cur_angles[s] = target_angles[s];

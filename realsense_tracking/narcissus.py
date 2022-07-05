@@ -38,7 +38,7 @@ if WERKPLAATS:
         COM_PORT = '/dev/ttyUSB0'
         RS_REFRESH = 15
     else:
-        COM_PORT = "COM12"
+        COM_PORT = "COM14"
         RS_REFRESH = 30
 else: 
     COM_PORT = "COM4"
@@ -233,14 +233,12 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
             my_active_facepoints.updateFacePoints(face_3Dpoints)
             # n_afp = len(my_active_facepoints.afps)
             # print(f"\033[{n_afp+1}A  AFP")
-            for afm in my_active_facepoints.afps:
-                # print(f" {afm.id} {afm.age_s()} {afm.fp_pix}")
-                
-
-                cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(afm.fp_3d[X],afm.fp_3d[Y],afm.fp_3d[Z]), 
-                            afm.fp_pix, cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
-                cv2.putText(color_image_disp, f"{afm.id} {afm.active}", 
-                            (afm.fp_pix[X]-10, afm.fp_pix[Y] - 15), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
+            for afp in my_active_facepoints.afps:
+                # print(f" {afp.toString()}")
+                cv2.putText(color_image_disp, "{:.2f} {:.2f} {:.2f}".format(afp.fp_3d[X],afp.fp_3d[Y],afp.fp_3d[Z]), 
+                            tuple2int(afp.fp_pix), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (255,255,255), thickness=1 )
+                cv2.putText(color_image_disp, f"{afp.id} {afp.active}", 
+                            (int(afp.fp_pix[X]-10), int(afp.fp_pix[Y] - 15)), cv2.FONT_HERSHEY_SIMPLEX , 1, (255,255,255), thickness=2 )
 
 
             cv2.putText(color_image_disp, "FPS {:.1f}".format(my_fps_rs.get_fps()), (20, 40), cv2.FONT_HERSHEY_SIMPLEX , 0.5, (0,255,55), thickness=1 )
@@ -300,8 +298,8 @@ while ENABLE_RS_FEED or ENABLE_SERIAL:
     # ==================
     #   FPS to console
     if not ENABLE_SCREEN:
-        if ( time.perf_counter() - my_fps_last_s) > 2:
-            active_faces_str =  ",".join(f"{id}" for id in my_active_facepoints.get_active_ids())
+        # if ( time.perf_counter() - my_fps_last_s) > 2:
+            active_faces_str =  ",".join(f"{afp.toString()}" for afp in my_active_facepoints.get_active_afps())
 
             print(f" FPS {my_fps_rs.get_fps():.0f} ; faces : {active_faces_str}")
             my_fps_last_s = time.perf_counter()

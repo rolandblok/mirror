@@ -287,7 +287,7 @@ class ScenarioTimedClosest(ScenarioBase):
 
     # when new line is activated : check mirror targets
     def activate_line(self):
-        print(f"line {self._active_line} activation  ")
+        # print(f"line {self._active_line} activation  ")
         mir_pix_poss = {}
         for mirror in range(NO_MIRRORS):
             mir_pix_poss[mirror] = PIX_MIR_POS(STREAM_WIDTH, STREAM_HEIGHT, mirror)
@@ -313,7 +313,7 @@ class ScenarioTimedClosest_1_Person(ScenarioTimedClosest):
         super().__init__(my_mirrors, afps)
         print("ScenarioTimedClosest_1_Person active")
 
-        self.append(2.0, [[ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
+        self.append(1.0, [[ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
         self.append(0.6, [[ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
         self.append(0.4, [[ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
         self.append(0.2, [[ 0, 0], [ 0, 0], [ 0, 0], [ 0, 0], [-1,-1], [-1,-1], [-1,-1], [-1,-1 ]] )
