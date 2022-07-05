@@ -87,17 +87,42 @@ class MyMovingAverage:
     def get_current(self):
         return statistics.mean(self.data)
 
-class MyFPS(MyMovingAverage):
-    def __init__(self, depth):
+
+# ..>w_top
+# ---
+# |  \
+# |   \
+# |    \
+# |     -------
+# ......>w_bot
+
+class MyMovingAverageLowPass(MyMovingAverage):
+    def __init__(self, depth, w_top, w_bot):
         super().__init__(depth)
-        self.last_time_s =  time.perf_counter()
-        self.add_frame()
-    def add_frame(self):
-        d_time_s = time.perf_counter() - self.last_time_s
-        self.add_point(d_time_s)
-        self.last_time_s = time.perf_counter()
-    def get_fps(self):
-        return(1/self.get_current())
+        self.w_top = w_top
+        self.w_bot = w_bot
+        
+    def add_point(self, p):
+        super().add_point(p)
+
+    def get_current(self):
+        sum = 0
+        sum_w = 0
+        last = self.data[-1]
+        for d in self.data:
+            w = self.weight(d, last)
+            sum   += w*d
+            sum_w += w
+        return sum / sum_w
+
+    def weight(self, d_old, d_new):
+        delta = abs(d_new - d_old)
+        if delta < self.w_top :
+            return 1
+        elif delta > self.w_bot:
+            return 0
+        else :
+            return (delta - self.w_top) / (self.w_bot - self.w_top)
 
 class MyMovingAverageVector:
     def __init__(self, ma_depth, vec_depth):
@@ -111,6 +136,21 @@ class MyMovingAverageVector:
 
     def get_current(self):
         return [d.get_current() for d in self.data]
+
+
+
+class MyFPS(MyMovingAverage):
+    def __init__(self, depth):
+        super().__init__(depth)
+        self.last_time_s =  time.perf_counter()
+        self.add_frame()
+    def add_frame(self):
+        d_time_s = time.perf_counter() - self.last_time_s
+        self.add_point(d_time_s)
+        self.last_time_s = time.perf_counter()
+    def get_fps(self):
+        return(1/self.get_current())
+
 
 def distance_sqr(va, vb):
     d = 0
@@ -211,8 +251,11 @@ if __name__ == '__main__':
     print("test MyMovingAverageVector")
     a = MyMovingAverageVector(3,2)
     a.add_point((1.1, 2.2))
+    assert a.get_current()[0] == 1.1
     print(a.get_current())
     a.add_point((1.2, 2.4))
+    assert a.get_current()[0] == 1.15
     print(a.get_current())
     a.add_point((1.3, 2.6))
+    assert a.get_current()[0] == 1.2
     print(a.get_current())
