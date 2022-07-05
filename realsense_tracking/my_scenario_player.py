@@ -287,7 +287,7 @@ class ScenarioTimedClosest(ScenarioBase):
 
     # when new line is activated : check mirror targets
     def activate_line(self):
-        print(f"line {self._active_line} activation  ")
+        # print(f"line {self._active_line} activation  ")
         mir_pix_poss = {}
         for mirror in range(NO_MIRRORS):
             mir_pix_poss[mirror] = PIX_MIR_POS(STREAM_WIDTH, STREAM_HEIGHT, mirror)

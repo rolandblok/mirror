@@ -7,6 +7,11 @@ import time
 
 STREAM_WIDTH=640
 STREAM_HEIGHT=480
+RS_REFRESH = 30
+# STREAM_WIDTH=1280
+# STREAM_HEIGHT=720
+# RS_REFRESH = 6
+
 
 # CONSTANTS
 X = 0   # array indices for cartesian dimensions
@@ -94,6 +99,18 @@ class MyFPS(MyMovingAverage):
     def get_fps(self):
         return(1/self.get_current())
 
+class MyMovingAverageVector:
+    def __init__(self, ma_depth, vec_depth):
+        self.data = []
+        for i in range(vec_depth):
+            self.data.append(MyMovingAverage(ma_depth))
+
+    def add_point(self, p):
+        for pp,dd in zip(p, self.data):
+            dd.add_point(pp)
+
+    def get_current(self):
+        return [d.get_current() for d in self.data]
 
 def distance_sqr(va, vb):
     d = 0
@@ -190,3 +207,12 @@ if __name__ == '__main__':
     print('a:{} to x:{}'.format(mida, xy))
     mida = hex_axis.evalY2X(xy)
     print('x:{} to a:{}'.format(xy, mida))
+
+    print("test MyMovingAverageVector")
+    a = MyMovingAverageVector(3,2)
+    a.add_point((1.1, 2.2))
+    print(a.get_current())
+    a.add_point((1.2, 2.4))
+    print(a.get_current())
+    a.add_point((1.3, 2.6))
+    print(a.get_current())
