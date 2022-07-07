@@ -83,9 +83,9 @@ void keyPressed() {
   if (key == 'p') {
     noLoop();
   } else if (key == '1') {
-    delta += 25;
+    delta += 75;
   } else if (key == '2') {
-    delta -= 25;
+    delta -= 75;
   } else if (key == 'l') {
     loop();
   } else if (key == 's') {

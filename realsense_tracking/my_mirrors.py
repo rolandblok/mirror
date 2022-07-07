@@ -55,7 +55,7 @@ class MyMirrors:
         self._mirrors[mirror_nbr].set_src_dest_id(source_afp_id, destination_afp_id)
     
     def reset_tracking(self, mirror_nbr):
-        print(f"reset mirror {mirror_nbr}  ")
+        # print(f"reset mirror {mirror_nbr}  ")
         self._mirrors[mirror_nbr].set_src_dest_id(None, None)
 
     def move_mirors(self, afps):
