@@ -64,8 +64,8 @@ class MyActiveFacepoints:
 class MyActiveFacepoint:
     def __init__(self, fp:PixAnd3D):
         self.id = unique_id()
-        self._ma_fp_pix = MyMovingAverageVector(2, lambda : MyMovingAverage(30))
-        self._ma_fp_3d  = MyMovingAverageVector(3, lambda : MyMovingAverage(30))
+        self._ma_fp_pix = MyMovingAverageVector(2, lambda : MyMovingAverageLowPass(8,5,10))
+        self._ma_fp_3d  = MyMovingAverageVector(3, lambda : MyMovingAverageLowPass(8,0.1,0.2))
         self.update_fp(fp)
         self.born_time_s = time.perf_counter()
     

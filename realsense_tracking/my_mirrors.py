@@ -51,7 +51,7 @@ class MyMirrors:
         return NO_MIRRORS
 
     def set_tracking(self, mirror_nbr, source_afp_id, destination_afp_id):
-        print(f"connect mirror {mirror_nbr} for face {source_afp_id} to {destination_afp_id} ")
+        # print(f"connect mirror {mirror_nbr} for face {source_afp_id} to {destination_afp_id} ")
         self._mirrors[mirror_nbr].set_src_dest_id(source_afp_id, destination_afp_id)
     
     def reset_tracking(self, mirror_nbr):

@@ -122,7 +122,7 @@ class MyMovingAverageLowPass(MyMovingAverage):
         elif delta > self.w_bot:
             return 0
         else :
-            return (delta - self.w_top) / (self.w_bot - self.w_top)
+            return (delta - self.w_bot) / (self.w_top - self.w_bot)
 
 class MyMovingAverageVector:
     def __init__(self, vec_depth, averager_factory):
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     mida = hex_axis.evalY2X(xy)
     print('x:{} to a:{}'.format(xy, mida))
 
-    print("test MyMovingAverageVector")
+    print("test MyMovingAverageVector : MA")
     a = MyMovingAverageVector(2, lambda : MyMovingAverage(2))
     a.add_point((1.1, 2.2))
     assert a.get_current()[0] == 1.1
@@ -258,4 +258,19 @@ if __name__ == '__main__':
     print(a.get_current())
     a.add_point((1.3, 2.6))
     assert a.get_current()[0] == 1.25
+    print(a.get_current())
+
+
+    print("test MyMovingAverageVector : MA Low pass")
+    a = MyMovingAverageVector(2, lambda : MyMovingAverageLowPass(2,5,10))
+    a.add_point((1,1))
+    assert a.get_current()[0] == 1
+    print(a.get_current())
+    a.add_point((2, 8.5))
+    assert a.get_current()[0] == 1.5, f"value was : {a.get_current()[0]}"
+    assert a.get_current()[1] == 6, f"value was : {a.get_current()[1]}"
+    print(a.get_current())
+    a.add_point((7, 40))
+    assert a.get_current()[0] == 4.5, f"value was : {a.get_current()[0]}"
+    assert a.get_current()[1] == 40, f"value was : {a.get_current()[1]}"
     print(a.get_current())

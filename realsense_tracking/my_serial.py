@@ -78,14 +78,14 @@ class MyMirrorSerial:
             for a in ma:
                 command += ",{:.2f}".format(a)
         self._serial_write_and_read(command)
-        print(command, end = "; ")
+        # print(command, end = "; ")
         command = "e"
         for m in range(4,8):
             ma = self.mirror_que[m]
             for a in ma:
                 command += ",{:.2f}".format(a)
         self._serial_write_and_read(command)
-        print(command )
+        # print(command )
 
     def serial_delta_move(self, mirror, delta):
         print("C,{},{:.2f},{:.2f}".format(mirror, delta[A], delta[B]))

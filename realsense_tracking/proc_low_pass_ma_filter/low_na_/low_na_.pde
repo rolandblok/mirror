@@ -82,6 +82,10 @@ void keyPressed() {
   println(key);
   if (key == 'p') {
     noLoop();
+  } else if (key == '1') {
+    delta += 25;
+  } else if (key == '2') {
+    delta -= 25;
   } else if (key == 'l') {
     loop();
   } else if (key == 's') {
@@ -95,8 +99,8 @@ class MyMovingAverage {
   FloatList data;
   int depth;
 
-  float w_top = 10;
-  float w_bot = 30;
+  float w_top = 50;
+  float w_bot = 100;
 
   MyMovingAverage(int depth) {
     this.data = new FloatList();
@@ -128,7 +132,7 @@ class MyMovingAverage {
     } else if (delta > w_bot) {
       return 0;
     } else {
-      return (delta - w_top) / (w_bot-w_top);
+      return (delta - w_bot) / (w_top-w_bot);
     }
   }
 }
