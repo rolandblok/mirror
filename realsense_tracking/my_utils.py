@@ -125,10 +125,10 @@ class MyMovingAverageLowPass(MyMovingAverage):
             return (delta - self.w_top) / (self.w_bot - self.w_top)
 
 class MyMovingAverageVector:
-    def __init__(self, ma_depth, vec_depth):
+    def __init__(self, vec_depth, averager_factory):
         self.data = []
         for i in range(vec_depth):
-            self.data.append(MyMovingAverage(ma_depth))
+            self.data.append(averager_factory())
 
     def add_point(self, p):
         for pp,dd in zip(p, self.data):
@@ -249,7 +249,7 @@ if __name__ == '__main__':
     print('x:{} to a:{}'.format(xy, mida))
 
     print("test MyMovingAverageVector")
-    a = MyMovingAverageVector(3,2)
+    a = MyMovingAverageVector(2, lambda : MyMovingAverage(2))
     a.add_point((1.1, 2.2))
     assert a.get_current()[0] == 1.1
     print(a.get_current())
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     assert a.get_current()[0] == 1.15
     print(a.get_current())
     a.add_point((1.3, 2.6))
-    assert a.get_current()[0] == 1.2
+    assert a.get_current()[0] == 1.25
     print(a.get_current())
